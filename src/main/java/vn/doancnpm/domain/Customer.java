@@ -14,6 +14,7 @@ import lombok.Builder;
 
 @Entity
 @Table(name = "customers")
+@Builder 
 public class Customer {
     
     @Id 
