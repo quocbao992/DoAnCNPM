@@ -92,7 +92,9 @@ Kiểm tra xem Backend server có đang hoạt động hay không.
   "password": "Password@123",
   "fullName": "Nguyễn Quốc Bảo",
   "email": "bao@gmail.com",
-  "phone": "0912345678"
+  "phone": "0912345678",
+  "dateOfBirth": "2000-01-15",
+  "gender": true
 }
 ```
 
