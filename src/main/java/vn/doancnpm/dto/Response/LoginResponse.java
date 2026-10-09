@@ -1,4 +1,4 @@
-package vn.doancnpm.dto;
+package vn.doancnpm.dto.Response;
 
 public class LoginResponse {
 

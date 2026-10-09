@@ -42,7 +42,7 @@ public class Payment {
     private Method method;
 
     @Column(name = "idempotency_key",nullable = false,unique = true)
-    private String idempotemcyKey;
+    private String idempotencyKey;
 
 
     @Column(name = "transaction_reference",nullable = false)

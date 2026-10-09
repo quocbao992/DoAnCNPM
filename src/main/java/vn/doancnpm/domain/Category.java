@@ -27,7 +27,10 @@ public class Category {
     @Column(name = "name",nullable = false)
     private String name;
     
-    @Column(name = "Display_Order",nullable = false)
-    private Long displayO;
+    @Column(name = "display_order",nullable = false)
+    private Long displayOrder;
     
+    @Column (name = "status")
+    @Builder .Default
+    private Boolean status = true;
 }
