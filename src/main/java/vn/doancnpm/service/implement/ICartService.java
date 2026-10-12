@@ -27,6 +27,8 @@ import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.repository.ToppingRepository;
 import vn.doancnpm.service.CartService;
 
+
+@SuppressWarnings("null")
 @Service
 @RequiredArgsConstructor
 @Transactional
