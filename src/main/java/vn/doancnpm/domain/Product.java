@@ -18,6 +18,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import jakarta.persistence.Version;
+
 
 @Entity 
 @Table(name = "product")
@@ -26,6 +28,7 @@ import lombok.Setter;
 @Getter 
 @Setter 
 @Builder 
+
 
 public class Product {
     
@@ -44,7 +47,7 @@ public class Product {
     private String imgURL;
 
     @Column(name ="stock",nullable = false)
-    private int stock;
+    private Integer stock;
 
     @Column (name = "unit_price",nullable = false)
     private BigDecimal unitPrice;
@@ -56,4 +59,8 @@ public class Product {
     @ManyToAny 
     @Column(name = "available_topping",nullable = false)
     private List<Topping> availableTopping;
+    //them 
+    @Version
+    private Long version;
+   
 }

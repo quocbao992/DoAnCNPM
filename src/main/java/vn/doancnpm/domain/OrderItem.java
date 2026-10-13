@@ -56,4 +56,7 @@ public class OrderItem {
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemTopping> toppings = new ArrayList<>();
+//them
+    @Column(name = "product_name", nullable = false)
+    private String productName; 
 }
