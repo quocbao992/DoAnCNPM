@@ -8,9 +8,7 @@ import java.util.List;
 
 @Repository 
 public interface OrderRepository extends JpaRepository<Order,Long>{
-    List<Order> findByCustomerId(Long customerId);
-    List<Order> findByStatus(String status);
-    List<Order> findByCustomerIdAndStatus(Long customerId, String status);
-    boolean existsByCustomerId(Long customerId);
-    List<Order> findByTotalAmountGreaterThan(java.math.BigDecimal amount);
+    List<Order> findByStatus(Order.Status status);
+    List<Order> findByCustomerIdAndStatus(Long customerId, Order.Status status);
+    List<Order> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
 }

@@ -43,4 +43,7 @@ public class OrderItemTopping {
 
     @Column(name = "unit_price", nullable = false)
     private BigDecimal unitPrice;
+//them
+    @Column(name = "topping_name", nullable = false)
+    private String toppingName;
 }
