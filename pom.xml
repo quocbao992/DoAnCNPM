@@ -56,12 +56,15 @@
       <optional>true</optional>
     </dependency>
 
-    <dependency>
+    <!--
+     <dependency>
         <groupId>org.projectlombok</groupId>
         <artifactId>lombok</artifactId>
         <version>1.18.42</version>
         <optional>true</optional>
     </dependency>
+-->
+
 
    
     <!-- Thư viện Test chuẩn của Spring Boot (nếu cần test) -->

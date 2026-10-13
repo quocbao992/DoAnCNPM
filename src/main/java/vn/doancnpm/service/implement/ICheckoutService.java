@@ -104,10 +104,14 @@ public class ICheckoutService implements CheckoutService {
                             ct.getPrice().multiply(BigDecimal.valueOf(ct.getQuantity())));
                 }
             }
-
+/* 
             // lineTotal = (giá món + topping của 1 ly) x số lượng
             oi.setLineTotal(ci.getUnitPrice().add(toppingPerUnit)
-                    .multiply(BigDecimal.valueOf(ci.getQuantity())));
+                    .multiply(BigDecimal.valueOf(ci.getQuantity()))); */
+            // (Giá món * số lượng ly) + Tổng tiền topping cố định
+            BigDecimal baseTotal = ci.getUnitPrice().multiply(BigDecimal.valueOf(ci.getQuantity()));
+            oi.setLineTotal(baseTotal.add(toppingPerUnit)); 
+
 
             order.getItems().add(oi);
             subtotal = subtotal.add(oi.getLineTotal());
