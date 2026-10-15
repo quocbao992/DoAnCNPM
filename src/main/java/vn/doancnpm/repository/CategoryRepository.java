@@ -10,5 +10,10 @@ import vn.doancnpm.domain.Category;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByStatus(Boolean status);
-
+    List<Category> findAllByOrderByDisplayOrderAsc();
+    List<Category> findByStatusOrderByDisplayOrderAsc(Boolean status);
+    List<Category> findByNameContainingIgnoreCaseOrderByDisplayOrderAsc(String keyword);
+    List<Category> findByNameContainingIgnoreCaseAndStatusOrderByDisplayOrderAsc(String keyword, Boolean status);
+    boolean existsByNameIgnoreCase(String name);
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 }

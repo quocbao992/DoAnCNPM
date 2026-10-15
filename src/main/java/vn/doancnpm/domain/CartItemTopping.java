@@ -23,28 +23,28 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder 
+@Builder
 public class CartItemTopping {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
+    // Quan hệ ManyToOne trỏ về CartItem cha
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cart_item_id", nullable = false)
     private CartItem cartItem;
 
-    
+    // Quan hệ ManyToOne trỏ về Topping danh mục
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "topping_id", nullable = false)
     private Topping topping;
 
-    
+    // Giá tạm tính tại thời điểm thêm vào giỏ
     @Column(name = "price", nullable = false)
     private BigDecimal price;
 
+    // Số lượng topping (ví dụ: x2 trân châu thì quantity = 2)
     @Column(name = "quantity", nullable = false)
-    @Builder.Default
     private int quantity = 1;
 }
