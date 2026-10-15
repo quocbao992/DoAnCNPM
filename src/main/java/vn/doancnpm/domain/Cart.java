@@ -28,8 +28,8 @@ import lombok.Setter;
 @Getter 
 @Setter 
 @Builder
-@AllArgsConstructor 
 @NoArgsConstructor 
+@AllArgsConstructor 
 public class Cart {
 
     @Id 
@@ -40,9 +40,8 @@ public class Cart {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    @Builder.Default
     @Column(name = "status")
-    private Boolean status = true;
+    private Boolean status;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItem> items ;
