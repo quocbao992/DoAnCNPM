@@ -61,6 +61,7 @@ public class CartItem {
     private BigDecimal unitPrice;
 
     // Quan hệ 1 - N trỏ sang CartItemTopping (mappedBy khớp tên biến cartItem)
+    @Builder.Default
     @OneToMany(mappedBy = "cartItem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItemTopping> toppings = new ArrayList<>();
 

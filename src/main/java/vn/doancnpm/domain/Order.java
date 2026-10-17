@@ -49,7 +49,14 @@ public class Order {
     
     
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderItem> items = new ArrayList<>();
+    private List<OrderItem> items;
+
+    public List<OrderItem> getItems() {
+        if (items == null) {
+            items = new ArrayList<>();
+        }
+        return items;
+    }
 
     @Column(name = "subtotal", nullable = false)
     private BigDecimal subtotal;
