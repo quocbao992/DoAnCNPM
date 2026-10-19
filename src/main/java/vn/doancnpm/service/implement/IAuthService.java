@@ -1,7 +1,9 @@
 package vn.doancnpm.service.implement;
 
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,16 +11,24 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import java.util.Locale;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import vn.doancnpm.domain.Customer;
 import vn.doancnpm.domain.User;
+import vn.doancnpm.dto.Request.ForgotPasswordRequest;
 import vn.doancnpm.dto.Request.LoginRequest;
+import vn.doancnpm.dto.Request.RefreshTokenRequest;
 import vn.doancnpm.dto.Request.RegisterRequest;
+import vn.doancnpm.dto.Request.ResetPasswordRequest;
 import vn.doancnpm.dto.Response.LoginResponse;
+import vn.doancnpm.dto.Response.RefreshTokenResponse;
+import vn.doancnpm.dto.Response.ForgotPasswordResponse;
 import vn.doancnpm.dto.Response.RegisterResponse;
 import vn.doancnpm.dto.Response.UserResponse;
 import vn.doancnpm.repository.UserRepository;
 import vn.doancnpm.service.AuthService;
+import vn.doancnpm.service.JWTUtils;
 import vn.doancnpm.repository.CustomerRepository;
 
 
@@ -29,6 +39,8 @@ public class IAuthService implements AuthService {
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
+    private final StringRedisTemplate redisTemplate;
+    private final JWTUtils jwtUtils;
 
     private UserResponse covertToResponse(User user) {
         return new UserResponse(user.getId(),user.getUsername(),user.getFullName(),user.getRole());
@@ -55,6 +67,8 @@ public class IAuthService implements AuthService {
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow(() -> new BadCredentialsException("Tên đăng nhập hoặc mật khẩu không chính xác"));
 
+        
+
         if(!user.isStatus()) {
             throw new  DisabledException("Tài khoản đã bị khóa");
         }
@@ -63,9 +77,20 @@ public class IAuthService implements AuthService {
             throw new BadCredentialsException("Tên đăng nhặp hoặc mật khẩu không chính xác");
         }
 
+        String accessToken = jwtUtils.generateToken(user.getUsername());
+        String refreshToken = UUID.randomUUID().toString();
+
+        long refreshTokenDurationDays = 7;
+        redisTemplate.opsForValue().set(
+                "refresh:" + refreshToken,
+                user.getUsername(),
+                refreshTokenDurationDays,
+                TimeUnit.DAYS
+        );
+
         UserResponse userResponse = covertToResponse(user);
 
-        return new LoginResponse(null, userResponse);
+        return LoginResponse.builder().token(accessToken).refreshToken(refreshToken).expiresIn(86400000L).user(userResponse).build();
 
     }
 
@@ -110,5 +135,99 @@ public class IAuthService implements AuthService {
         customerRepository.save(customer);
 
         return convertToRegisterResponse(savedUser);
+    }
+
+    @Override 
+    public void logout(String accesstoken,String refreshtoken) {
+        if(accesstoken != null ) {
+            long remain = jwtUtils.getRemainingExpiration(accesstoken);
+            if(remain > 0 ) {
+                redisTemplate.opsForValue().set("blacklist:" + accesstoken, "logout", remain, TimeUnit.MILLISECONDS);
+            }
+        }
+
+        if(refreshtoken != null && !refreshtoken.isBlank()) {
+            redisTemplate.delete("refresh:" + refreshtoken);
+        }
+        SecurityContextHolder.clearContext();
+    }
+
+    @Override 
+    public boolean isTokenBlacklisted(String token) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey("blacklisted:"+ token));
+    }
+
+    @Override
+    public RefreshTokenResponse refreshToken(RefreshTokenRequest request) {
+        String incomingRefreshToken = request.getRefreshToken();
+
+        String redisKey = "refresh:" + incomingRefreshToken;
+        String username = redisTemplate.opsForValue().get(redisKey);
+
+        if (username == null) {
+            throw new RuntimeException("Refresh token không hợp lệ hoặc đã hết hạn");
+        }
+
+        redisTemplate.delete(redisKey);
+
+        String newAccessToken = jwtUtils.generateToken(username);
+        String newRefreshToken = UUID.randomUUID().toString();
+
+        redisTemplate.opsForValue().set(
+            "refresh:" + newRefreshToken,
+            username,
+            7,
+            TimeUnit.DAYS
+        );
+
+        return RefreshTokenResponse.builder()
+                .token(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .expiresIn(86400000L)
+                .build();
+    }
+
+    @Override
+    public ForgotPasswordResponse forgotPassword(ForgotPasswordRequest request) {
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+
+        User user = userRepository.findByEmail(email).orElse(null);
+
+        if(user == null) {
+            return new ForgotPasswordResponse(
+                    "Nếu email tồn tại, hệ thống đã tạo yêu cầu đặt lại mật khẩu.",
+                    null
+            );
+        }
+
+        String resetOtp = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set(
+                "password-reset:" + resetOtp,
+                user.getId().toString(),
+                15,
+                TimeUnit.MINUTES
+        );
+
+        return new ForgotPasswordResponse(
+                "Token đặt lại mật khẩu có hiệu lực trong 15 phút.",
+                resetOtp
+        );
+    }
+
+    @Override
+    public void resetPassword(ResetPasswordRequest request) {
+        String redisKey = "password-reset:" + request.getOtpToken();
+        String userId = redisTemplate.opsForValue().get(redisKey);
+        if(userId == null) {
+            throw new IllegalArgumentException("Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn");
+        }
+
+        User user = userRepository.findById(Long.valueOf(userId)).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        
+        redisTemplate.delete(redisKey);
+
     }
 }

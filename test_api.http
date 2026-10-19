@@ -1,0 +1,44 @@
+@baseUrl = http://localhost:8081/api/v1/auth
+
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "username": "phamquocbao",
+  "password": "Bao@1234",
+  "fullName": "Phạm Quốc Bảo",
+  "email": "phamquocbao@example.com",
+  "phone": "0901234567",
+  "dateOfBirth": "2003-01-15",
+  "gender": true
+}
+###
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "username": "phamquocbao",
+  "password": "phamquocbao@123456"
+}
+###
+POST {{baseUrl}}/logout
+Content-Type: application/json
+
+###
+POST {{baseUrl}}/forgot-password
+Content-Type: application/json
+
+{
+  "email": "phamquocbao@example.com"
+}
+
+###
+POST {{baseUrl}}/reset-password
+Content-Type: application/json
+
+{
+  "email": "phamquocbao@example.com",
+  "otpToken": "569d06c1-c9bb-486a-9f9c-1c29b26f5735",
+  "newPassword": "phamquocbao@123456"
+}
+

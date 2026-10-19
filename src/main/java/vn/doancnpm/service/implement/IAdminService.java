@@ -65,7 +65,7 @@ public class IAdminService implements AdminService {
 
         boolean validRole = roleInUpperCase.equals("CUSTOMER")
                 || roleInUpperCase.equals("CASHIER")
-                || roleInUpperCase.equals("ADMIN");
+                || roleInUpperCase.equals("ADMIN") || roleInUpperCase.equals("BARISTA");
 
         if (!validRole) {
             throw new IllegalArgumentException("Vai trò người dùng không hợp lệ");
