@@ -16,6 +16,7 @@ public interface CategoryService {
     List<CategoryResponse> getActiveForMenu();
     List<CategoryResponse> searchByName(String keyword, Boolean status);
     CategoryResponse updateDisplayOrder(Long categoryId, Long newDisplayOrder);
+    void delete(Long categoryId);
     boolean existsById(Long categoryId);
     boolean isActive(Long categoryId);
     Category getEntityById(Long categoryId);

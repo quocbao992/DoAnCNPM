@@ -1,6 +1,7 @@
 package vn.doancnpm.domain;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.hibernate.annotations.ManyToAny;
@@ -11,6 +12,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -56,10 +59,18 @@ public class Product {
     @Column (name ="status",nullable = false)
     private boolean status=true;
 
-    @ManyToAny 
-    @Column(name = "available_topping",nullable = false)
-    private List<Topping> availableTopping;
-    //them 
+    //@ManyToAny 
+    //@Column(name = "available_topping",nullable = false)
+    //private List<Topping> availableTopping;
+   
+    @ManyToMany // liên kết phần topping với MP
+    @JoinTable(
+            name = "producttopping",
+            joinColumns = @JoinColumn(name = "productid"),
+            inverseJoinColumns = @JoinColumn(name = "toppingid"))
+    @Builder.Default
+    private List<Topping> availableTopping = new ArrayList<>();
+
     @Version
     private Long version;
    
