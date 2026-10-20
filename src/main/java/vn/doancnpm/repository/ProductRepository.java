@@ -17,6 +17,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Modifying(clearAutomatically = true)
     @Query("update Product p set p.stock = p.stock - :qty where p.id = :id and p.stock >= :qty")
     int deductStock(@Param("id") Long id, @Param("qty") int qty);
+    
 }
 
 

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import vn.doancnpm.domain.Topping;
 @Repository
 public interface ToppingRepository extends JpaRepository<Topping, Long> {
-    List<Topping> findByStatus(Boolean status);
+    List<Topping> findByStatus(boolean id);
     Optional<Topping> findById(Long id);
     
 }
