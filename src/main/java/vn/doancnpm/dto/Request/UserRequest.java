@@ -42,10 +42,12 @@ public class UserRequest {
 
     @NotBlank(message = "Vai trò không được để trống")
     @Pattern(
-        regexp = "^(?i)(CUSTOMER|CASHIER|ADMIN)$",
-        message = "Vai trò phải là CUSTOMER,CASHIER hoặc ADMIN"
+        regexp = "^(?i)(CUSTOMER|CASHIER|ADMIN|BARISTA)$",
+        message = "Vai trò phải là CUSTOMER, CASHIER, BARISTA hoặc ADMIN"
     )
     private String role;
+
+    private String phone;
 
     public UserRequest() {
     }
@@ -89,6 +91,12 @@ public class UserRequest {
     public void setRole(String role) {
         this.role = role;
     }
-    
-    
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
 }

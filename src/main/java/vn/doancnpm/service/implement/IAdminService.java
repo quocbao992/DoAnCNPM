@@ -11,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import vn.doancnpm.domain.Customer;
 import vn.doancnpm.domain.User;
 import vn.doancnpm.dto.Request.UserRequest;
 import vn.doancnpm.dto.Response.UserResponse;
+import vn.doancnpm.repository.CustomerRepository;
 import vn.doancnpm.repository.UserRepository;
 import vn.doancnpm.service.AdminService;
 
@@ -23,6 +25,7 @@ import vn.doancnpm.service.AdminService;
 public class IAdminService implements AdminService {
 
     private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
 
     private User getUserEntityById(Long id) {
@@ -75,7 +78,18 @@ public class IAdminService implements AdminService {
     }
 
     private UserResponse toUserResponse(User user) {
-        return new UserResponse(user.getId(),user.getUsername(),user.getFullName(),user.getRole());
+        Customer customer = customerRepository.findByUserId(user.getId()).orElse(null);
+        return UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phone(customer != null ? customer.getPhone() : null)
+                .role(user.getRole())
+                .status(user.isStatus())
+                .dateOfBirth(customer != null ? customer.getDate() : null)
+                .gender(customer != null ? customer.isGender() : null)
+                .build();
     }
 
 
@@ -160,5 +174,13 @@ public class IAdminService implements AdminService {
         return toUserResponse(savedUser);
     }
 
-    
+    @Override
+    @Transactional
+    public UserResponse updateRole(Long id, String role) {
+        User user = getUserEntityById(id);
+        user.setRole(getValidRole(role));
+
+        User savedUser = userRepository.save(user);
+        return toUserResponse(savedUser);
+    }
 }

@@ -43,11 +43,22 @@ public class IAuthService implements AuthService {
     private final JWTUtils jwtUtils;
 
     private UserResponse covertToResponse(User user) {
-        return new UserResponse(user.getId(),user.getUsername(),user.getFullName(),user.getRole());
+        Customer customer = customerRepository.findByUserId(user.getId()).orElse(null);
+        return UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phone(customer != null ? customer.getPhone() : null)
+                .role(user.getRole())
+                .status(user.isStatus())
+                .dateOfBirth(customer != null ? customer.getDate() : null)
+                .gender(customer != null ? customer.isGender() : null)
+                .build();
     }
 
     private RegisterResponse convertToRegisterResponse(User user) {
-        return new RegisterResponse(user.getId(),user.getUsername(),user.getFullName(),user.getRole());
+        return new RegisterResponse(user.getId(), user.getUsername(), user.getFullName(), user.getEmail(), user.getRole());
     }
 
     private String normalizePhone(String phone) {
