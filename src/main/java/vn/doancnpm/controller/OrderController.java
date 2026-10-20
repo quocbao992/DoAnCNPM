@@ -2,7 +2,6 @@ package vn.doancnpm.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,12 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import vn.doancnpm.domain.Order;
+import vn.doancnpm.dto.Request.CancelOrderRequest;
 import vn.doancnpm.dto.Request.CheckoutRequest;
 import vn.doancnpm.dto.Request.UpdateOrderStatusRequest;
 import vn.doancnpm.dto.Response.OrderResponse;
+import vn.doancnpm.dto.Response.OrderSummaryResponse;
+import vn.doancnpm.dto.Response.PageResponse;
 import vn.doancnpm.service.CheckoutService;
 import vn.doancnpm.service.OrderService;
-
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -31,47 +32,58 @@ public class OrderController {
     private final OrderService orderService;
     private final CheckoutService checkoutService;
 
-    // Lịch sử mua hàng: GET /api/v1/orders?customerId=1  (có thể thêm &status=COMPLETED)
+    @PostMapping("/checkout")
+    public ResponseEntity<OrderResponse> checkout(@Valid @RequestBody CheckoutRequest rq) {
+        return ResponseEntity.ok(checkoutService.checkout(rq));
+    }
+
     @GetMapping
-    public ResponseEntity<List<OrderResponse>> history(@RequestParam Long customerId,
-                                                       @RequestParam(required = false) Order.Status status) {
-        return ResponseEntity.ok(orderService.getHistory(customerId, status));
+    public ResponseEntity<PageResponse<OrderSummaryResponse>> history(
+            @RequestParam Long customerId,
+            @RequestParam(required = false) Order.Status status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(orderService.getHistory(customerId, status, page, size));
     }
 
-    // Nhân viên xem đơn theo trạng thái: GET /api/v1/orders/status/PENDING
-    @GetMapping("/status/{status}")
-    public ResponseEntity<List<OrderResponse>> byStatus(@PathVariable Order.Status status) {
-        return ResponseEntity.ok(orderService.getByStatus(status));
+    @GetMapping("/queue")
+    public ResponseEntity<List<OrderResponse>> queue(
+            @RequestParam(required = false) List<Order.Status> status) {
+        List<Order.Status> statuses = (status == null || status.isEmpty())
+                ? List.of(Order.Status.PAID, Order.Status.PREPARING, Order.Status.READY)
+                : status;
+        return ResponseEntity.ok(orderService.getQueue(statuses));
     }
 
-    // Chi tiết đơn: GET /api/v1/orders/5
+    
+    @GetMapping("/code/{orderCode}")
+    public ResponseEntity<OrderResponse> byCode(@PathVariable String orderCode) {
+        return ResponseEntity.ok(orderService.getByCode(orderCode));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponse> detail(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.getById(id));
     }
 
-    // Checkout: POST /api/v1/orders/checkout  body {"customerId": 1}
-    @PostMapping("/checkout")
-    public ResponseEntity<OrderResponse> checkout(@Valid @RequestBody CheckoutRequest rq) {
-        return new ResponseEntity<>(checkoutService.checkout(rq.getCustomerId()), HttpStatus.CREATED);
+    @PutMapping("/{id}/status")
+    public ResponseEntity<OrderResponse> updateStatus(@PathVariable Long id,
+            @Valid @RequestBody UpdateOrderStatusRequest rq) {
+        if (rq.getStatus() == Order.Status.PAID) {
+            throw new IllegalStateException("Không đặt PAID trực tiếp, hãy dùng thanh toán/xác nhận");
+        }
+        return ResponseEntity.ok(orderService.updateStatus(id, rq.getStatus(), rq.getReason()));
     }
 
-    // Đơn đã thanh toán -> PAID (PaymentService sẽ gọi; tạm để test bằng Postman)
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<OrderResponse> cancel(@PathVariable Long id,
+            @Valid @RequestBody CancelOrderRequest rq) {
+        return ResponseEntity.ok(orderService.cancel(id, rq.getReason()));
+    }
+
+    // TẠM để test bằng Postman (PaymentService sẽ gọi confirmOrder khi thanh toán xong)
     @PostMapping("/{id}/confirm")
     public ResponseEntity<OrderResponse> confirm(@PathVariable Long id) {
         return ResponseEntity.ok(checkoutService.confirmOrder(id));
-    }
-
-    // Cập nhật trạng thái: PUT /api/v1/orders/5/status  body {"status": "PREPARING"}
-    @PutMapping("/{id}/status")
-    public ResponseEntity<OrderResponse> updateStatus(@PathVariable Long id,
-    @Valid @RequestBody UpdateOrderStatusRequest rq) {
-        return ResponseEntity.ok(orderService.updateStatus(id, rq.getStatus()));
-    }
-
-    // Hủy đơn: PUT /api/v1/orders/5/cancel
-    @PutMapping("/{id}/cancel")
-    public ResponseEntity<OrderResponse> cancel(@PathVariable Long id) {
-        return ResponseEntity.ok(orderService.cancel(id));
     }
 }
