@@ -49,16 +49,6 @@ public class IAdminService implements AdminService {
         }
     }
 
-    private void checkDuplicateUserForUpdate(String username, String email, Long userId) {
-        if (userRepository.existsByUsernameAndIdNot(username, userId)) {
-            throw new IllegalArgumentException("Tên đăng nhập đã được sử dụng");
-        }
-
-        if (userRepository.existsByEmailAndIdNot(email, userId)) {
-            throw new IllegalArgumentException("Email đã được sử dụng");
-        }
-    }
-
     private String getNormalizedEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
     }
@@ -128,10 +118,23 @@ public class IAdminService implements AdminService {
     @Override
     @Transactional
     public UserResponse createUser(UserRequest request) {
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            throw new IllegalArgumentException("Tên đăng nhập không được để trống");
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Mật khẩu không được để trống");
+        }
+
         String username = request.getUsername().trim();
         String email = getNormalizedEmail(request.getEmail());
 
         checkDuplicateUserForCreate(username, email);
+
+        if (request.getPhone() != null && !request.getPhone().isBlank()) {
+            if (customerRepository.existsByPhone(request.getPhone().trim())) {
+                throw new IllegalArgumentException("Số điện thoại đã được sử dụng");
+            }
+        }
 
         User user = new User();
         user.setUsername(username);
@@ -142,6 +145,18 @@ public class IAdminService implements AdminService {
         user.setStatus(true);
 
         User savedUser = userRepository.save(user);
+
+        if (request.getPhone() != null && !request.getPhone().isBlank()) {
+            Customer customer = Customer.builder()
+                    .user(savedUser)
+                    .phone(request.getPhone().trim())
+                    .date(request.getDateOfBirth())
+                    .gender(request.getGender() != null ? request.getGender() : false)
+                    .loyaltyP(0)
+                    .build();
+            customerRepository.save(customer);
+        }
+
         return toUserResponse(savedUser);
     }
 
@@ -149,18 +164,47 @@ public class IAdminService implements AdminService {
     @Transactional
     public UserResponse updateUser(Long id, UserRequest request) {
         User user = getUserEntityById(id);
-        String username = request.getUsername().trim();
         String email = getNormalizedEmail(request.getEmail());
 
-        checkDuplicateUserForUpdate(username, email, id);
+        if (userRepository.existsByEmailAndIdNot(email, id)) {
+            throw new IllegalArgumentException("Email đã được sử dụng");
+        }
 
-        user.setUsername(username);
         user.setFullName(request.getFullName().trim());
         user.setEmail(email);
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRole(getValidRole(request.getRole()));
 
         User savedUser = userRepository.save(user);
+
+        Customer customer = customerRepository.findByUserId(id).orElse(null);
+        if (customer != null) {
+            if (request.getPhone() != null && !request.getPhone().isBlank()) {
+                if (customerRepository.existsByPhoneAndIdNot(request.getPhone().trim(), customer.getId())) {
+                    throw new IllegalArgumentException("Số điện thoại đã được sử dụng");
+                }
+                customer.setPhone(request.getPhone().trim());
+            }
+            if (request.getDateOfBirth() != null) {
+                customer.setDate(request.getDateOfBirth());
+            }
+            if (request.getGender() != null) {
+                customer.setGender(request.getGender());
+            }
+            customerRepository.save(customer);
+        } else if (request.getPhone() != null && !request.getPhone().isBlank()) {
+            if (customerRepository.existsByPhone(request.getPhone().trim())) {
+                throw new IllegalArgumentException("Số điện thoại đã được sử dụng");
+            }
+            Customer newCustomer = Customer.builder()
+                    .user(savedUser)
+                    .phone(request.getPhone().trim())
+                    .date(request.getDateOfBirth())
+                    .gender(request.getGender() != null ? request.getGender() : false)
+                    .loyaltyP(0)
+                    .build();
+            customerRepository.save(newCustomer);
+        }
+
         return toUserResponse(savedUser);
     }
 
