@@ -42,8 +42,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findMenu(); 
     boolean existsByNameIgnoreCase(String name);
     boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
-    boolean existsByImgURL(String imgURL);
-    boolean existsByImgURLAndIdNot(String imgURL, Long id);
+    //boolean existsByImgURL(String imgURL);
+    //boolean existsByImgURLAndIdNot(String imgURL, Long id);
     boolean existsByCategoryId(Long categoryId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -53,6 +53,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Modifying(clearAutomatically = true)
     @Query("update Product p set p.stock = p.stock - :qty where p.id = :id and p.stock >= :qty")
     int deductStock(@Param("id") Long id, @Param("qty") int qty);
+    @Modifying(clearAutomatically = true)
+    @Query("update Product p set p.stock = p.stock + :qty where p.id = :id")
+    int restoreStock(@Param("id") Long id, @Param("qty") int qty);
 }
 
 
