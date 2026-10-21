@@ -51,7 +51,7 @@ public class Payment {
 
 
     @Column(name = "transaction_reference")
-    private String transactionRefer;
+    private String transactionRef;
     
     @Column(name = "created_at",nullable = false)
     private LocalDateTime createdAt;

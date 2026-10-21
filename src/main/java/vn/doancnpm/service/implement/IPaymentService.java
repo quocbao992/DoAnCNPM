@@ -61,7 +61,7 @@ public class IPaymentService implements PaymentService {
         Order order = orderRepo.findById(rq.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng"));
  
-        if (!"PENDING".equals(order.getStatus())) {
+        if (order.getStatus() != Order.Status.PENDING) {
             throw new IllegalStateException("Chỉ thanh toán được đơn hàng đang PENDING");
         }
         if (paymentRepo.existsByOrderIdAndStatus(order.getId(), SUCCESS)) {
@@ -89,22 +89,33 @@ public class IPaymentService implements PaymentService {
         String current = payment.getStatus();
  
         // Callback gửi trùng cùng trạng thái thì không báo lỗi
-        if (current.equals(newStatus)) {
+        
+        /*if (current.equals(newStatus)) {
             return mapToPaymentResponse(payment);
         }
         if (!TRANSITIONS.getOrDefault(current, Set.of()).contains(newStatus)) {
             throw new IllegalStateException("Không thể chuyển trạng thái " + current + " -> " + newStatus);
-        }
+        }*/
+
+        if (newStatus != null && !current.equals(newStatus)) {
+            if (!TRANSITIONS.getOrDefault(current, Set.of()).contains(newStatus)) {
+                throw new IllegalStateException("Không thể chuyển trạng thái " + current + " -> " + newStatus);
+            }
  
-        payment.setStatus(newStatus);
-        if (transactionRef != null) {
-            payment.setTransactionRefer(transactionRef);
+            payment.setStatus(newStatus);
+        /*if (transactionRef != null) {
+            payment.setTransactionRef(transactionRef);
+        }*/
+            if (SUCCESS.equals(newStatus)) {
+                payment.setPaidAt(LocalDateTime.now());
+            }
         }
-        if (SUCCESS.equals(newStatus)) {
-            payment.setPaidAt(LocalDateTime.now());
+
+        if (transactionRef != null && !transactionRef.isBlank()) {
+            payment.setTransactionRef(transactionRef);
         }
- 
-        return mapToPaymentResponse(paymentRepo.save(payment));
+        paymentRepo.save(payment);
+        return mapToPaymentResponse(payment);
     }
  
     @Override
@@ -130,7 +141,7 @@ public class IPaymentService implements PaymentService {
                 .method(p.getMethod().name())
                 .amount(p.getAmount())
                 .status(p.getStatus())
-                .transactionRef(p.getTransactionRefer())
+                .transactionRef(p.getTransactionRef())
                 .paidAt(p.getPaidAt())
                 .createdAt(p.getCreatedAt())
                 .build();

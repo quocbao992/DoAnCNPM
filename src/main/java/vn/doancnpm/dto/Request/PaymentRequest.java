@@ -19,7 +19,7 @@ public class PaymentRequest {
     @NotNull(message = "Đơn hàng không được để trống")
     private Long orderId;
 
-    @NotBlank(message = "Phương thức thanh toán không được để trống")
+    @NotNull(message = "Phương thức thanh toán không được để trống")
     private Payment.Method method;
 
     @NotBlank(message = "idempotencyKey không được để trống")

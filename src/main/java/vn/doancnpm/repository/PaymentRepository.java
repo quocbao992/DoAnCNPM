@@ -12,7 +12,7 @@ import vn.doancnpm.domain.Payment;
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByOrderId(Long orderId);
     Optional<Payment> findByIdempotencyKey(String idempotencyKey);
-    Payment findByTransactionRefer(String transactionRefer);
+    Payment findByTransactionRef(String transactionRef);
     boolean existsByIdempotencyKey(String idempotencyKey);
     List<Payment> findByOrderIdOrderByCreatedAtDesc(Long orderid);
     boolean existsByOrderIdAndStatus(Long orderId, String status);
