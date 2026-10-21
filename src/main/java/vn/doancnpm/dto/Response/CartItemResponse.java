@@ -18,7 +18,7 @@ public class CartItemResponse {
     private Long id;
     private Long productId;
     private String name;
-    private String imgage;
+    private String img;
     private int quantity;
     private Size size;
     private BigDecimal unitPrice;
