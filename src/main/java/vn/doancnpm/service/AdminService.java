@@ -11,5 +11,6 @@ public interface AdminService {
     List<UserResponse> getUsersByRole(String role);
     UserResponse createUser(UserRequest request);
     UserResponse updateUser(Long id, UserRequest request);
-    UserResponse updateStatus(Long id, boolean status); // xóa giả bằng điều chỉnh status
+    UserResponse updateStatus(Long id, boolean status);
+    UserResponse updateRole(Long id, String role);
 }

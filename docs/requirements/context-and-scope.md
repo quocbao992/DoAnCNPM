@@ -50,3 +50,6 @@ Hệ thống *BrewLite* được xây dựng nhằm cung cấp giải pháp đ�
 | *Giả định (Assumptions)* | - Người dùng có điện thoại thông minh kết nối Internet.<br>- Quầy pha chế có thiết bị (máy tính bảng/máy tính) kết nối mạng ổn định. | Đảm bảo hệ thống vận hành theo thời gian thực. |
 | *Ràng buộc (Constraints)* | - Frontend: Bắt buộc dùng Next.js theo hướng Mobile-first/PWA.<br>- Backend: Bắt buộc dùng Java Springboot.<br>- Database: Bắt buộc dùng MySQL.<br>- Thời gian hoàn thành: 2 Sprints. | Tuân thủ đúng yêu cầu của đề tài. |
 | *Rủi ro (Risks)* | - Mạng chập chờn gây mất kết nối WebSocket khi đồng bộ đơn.<br>- Thời gian cấu hình CI/CD và triển khai thực tế có thể phát sinh lỗi ngoài dự kiến. | Cần có cơ chế polling dự phòng khi mất kết nối. |
+
+
+

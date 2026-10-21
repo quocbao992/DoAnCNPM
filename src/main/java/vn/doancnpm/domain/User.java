@@ -42,7 +42,7 @@ public class User {
     private String role;
 
     @Column(name = "status", nullable = false)
-    private boolean status = true;
+    private boolean status;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

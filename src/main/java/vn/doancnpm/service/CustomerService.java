@@ -9,5 +9,9 @@ public interface CustomerService {
 
     CustomerResponse updateMyProfile(Long userId,CustomerRequest request);
 
+<<<<<<< HEAD
+=======
+    float getMyLoyalPoint(Long userId);
+>>>>>>> e61a28af7a0506996cadf03647d083e5436ace95
 
 }

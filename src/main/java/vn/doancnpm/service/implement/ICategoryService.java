@@ -12,6 +12,7 @@ import vn.doancnpm.domain.Category;
 import vn.doancnpm.dto.Request.CategoryRequest;
 import vn.doancnpm.dto.Response.CategoryResponse;
 import vn.doancnpm.repository.CategoryRepository;
+import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.service.CategoryService;
 
 @Service
@@ -20,6 +21,7 @@ import vn.doancnpm.service.CategoryService;
 public class ICategoryService implements CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
     private CategoryResponse convertToResponse(Category category) {
         return new CategoryResponse(
@@ -140,6 +142,18 @@ public class ICategoryService implements CategoryService {
         Category category = findCategoryOrThrow(categoryId);
         category.setDisplayOrder(newDisplayOrder);
         return convertToResponse(categoryRepository.save(category));
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long categoryId) {
+        Category category = findCategoryOrThrow(categoryId);
+        if (productRepository.existsByCategoryId(categoryId)) {
+            throw new IllegalArgumentException(
+                    "Danh mục \"" + category.getName() + "\" còn sản phẩm nên không thể xóa. "
+                            + "Hãy ẩn danh mục hoặc chuyển sản phẩm sang danh mục khác");
+        }
+        categoryRepository.delete(category);
     }
 
     // ===== Các hàm dùng chung cho module khác =====
