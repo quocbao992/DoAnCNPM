@@ -157,8 +157,8 @@ public class ICartService implements CartService {
 
         CartItem cartItem = CartItem.builder()
                 .quantity(rq.getItem().getQuantity())
-                .size(rq.getItem().getSize())
-                .note(rq.getItem().getNote())
+                .size(rq.getItem().getSize())          // Đã map size
+                .note(rq.getItem().getNote())          // Đã map note
                 .build();
 
         List<CartItemTopping> itemToppings = new java.util.ArrayList<>();
@@ -187,10 +187,17 @@ public class ICartService implements CartService {
     }
 
     private CartItemToppingResponse mapToToppingResponse(CartItemTopping cit) {
+        BigDecimal subtotal = (cit.getPrice() != null) 
+                ? cit.getPrice().multiply(BigDecimal.valueOf(cit.getQuantity())) 
+                : BigDecimal.ZERO;
+
         return CartItemToppingResponse.builder()
+                .id(cit.getId())
                 .toppingId(cit.getTopping().getId())
                 .name(cit.getTopping().getName())
                 .unitPrice(cit.getPrice())
+                .quantity(cit.getQuantity())
+                .subtotal(subtotal)
                 .build();
     }
 
@@ -222,7 +229,10 @@ public class ICartService implements CartService {
                 .name(item.getProduct().getName())
                 .unitPrice(item.getProduct().getUnitPrice())
                 .quantity(item.getQuantity())
+                .size(item.getSize())              
+                .note(item.getNote())              
                 .toppings(toppingResponses)
+                .img(item.getProduct().getImgURL())
                 .itemTotalPrice(itemTotalPrice)
                 .build();
     }

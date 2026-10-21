@@ -33,12 +33,13 @@ public class CartController {
         cartService.addToCart(rq);
         return new ResponseEntity<>("Thêm vào giỏ hàng thành công !", HttpStatus.CREATED);
     }
-
+     
+    public record UQRequest(int quantity){} 
     @PutMapping("/items/{cartItemId}")
     public ResponseEntity<String> updateCartItem(
             @PathVariable Long cartItemId,
-            @RequestParam int quantity) {
-        cartService.updateCartItem(cartItemId, quantity);
+            @RequestBody UQRequest rq) {
+        cartService.updateCartItem(cartItemId, rq.quantity );
         return new ResponseEntity<>("Cập nhật số lượng thành công !", HttpStatus.OK);
     }
 
