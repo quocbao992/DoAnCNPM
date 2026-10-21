@@ -55,4 +55,17 @@ public class ICustomerService implements CustomerService {
         return convertToResponse(customer);
     }
     
+    @Override
+    public float getMyLoyalPoint(Long userId) {
+        Customer customer = customerRepository.findById(userId).orElse(null);
+        
+        if(customer == null) {
+            throw new IllegalArgumentException("Không tìm thấy khách hàng");
+        }
+
+        return customer.getLoyaltyP();
+
+
+    }
+    
 }

@@ -8,11 +8,13 @@ import java.util.Optional;
 import vn.doancnpm.domain.Order;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 
 @Repository 
-public interface OrderRepository extends JpaRepository<Order,Long>{
+
+
+public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
     List<Order> findByStatus(Order.Status status);
     List<Order> findByCustomerIdAndStatus(Long customerId, Order.Status status);
     List<Order> findByCustomerIdOrderByCreatedAtDesc(Long customerId);

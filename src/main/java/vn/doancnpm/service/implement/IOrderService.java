@@ -173,7 +173,7 @@ public class IOrderService implements OrderService {
         return AdminOrderResponse.builder()
                 .id(o.getId())
                 .orderCode(o.getOrderCode())
-                .customerName(o.getCustomer().getFullName()) // đổi theo tên field thật của Customer
+                .customerName(o.getCustomer().getUser().getFullName()) // đổi theo tên field thật của Customer
                 .phone(o.getCustomer().getPhone())           // đổi theo tên field thật của Customer
                 .totalAmount(o.getTotalAmount())
                 .status(o.getStatus())
