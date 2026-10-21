@@ -32,12 +32,12 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Liên kết tới đơn hàng cha (kiểu dữ liệu là Order)
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order; 
 
-    // Đã bỏ unique = true
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
@@ -55,5 +55,15 @@ public class OrderItem {
     private BigDecimal lineTotal;
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderItemTopping> toppings = new ArrayList<>();
+    private List<OrderItemTopping> toppings;
+
+    public List<OrderItemTopping> getToppings() {
+        if (toppings == null) {
+            toppings = new ArrayList<>();
+        }
+        return toppings;
+    }
+//them
+    @Column(name = "product_name", nullable = false)
+    private String productName; 
 }

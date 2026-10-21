@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity 
-@Table(name = "orders") // Đổi thành orders để tránh xung đột từ khóa ORDER BY
+@Table(name = "orders") 
 @AllArgsConstructor 
 @NoArgsConstructor 
 @Getter 
@@ -38,7 +38,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Đã bỏ unique = true để 1 khách có thể đặt nhiều đơn
+   
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
@@ -47,9 +47,16 @@ public class Order {
     @Column(name = "status", nullable = false)
     private Status status;
     
-    // mappedBy phải khớp chính xác với tên biến "private Order order;" trong OrderItem.java
+    
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderItem> items = new ArrayList<>();
+    private List<OrderItem> items;
+
+    public List<OrderItem> getItems() {
+        if (items == null) {
+            items = new ArrayList<>();
+        }
+        return items;
+    }
 
     @Column(name = "subtotal", nullable = false)
     private BigDecimal subtotal;

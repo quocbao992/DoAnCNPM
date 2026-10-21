@@ -11,6 +11,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -20,6 +22,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,8 +32,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@Builder 
 @AllArgsConstructor
-public class Cartitem {
+public class CartItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,9 +48,12 @@ public class Cartitem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(name = "size")
-    private String size;
+    @Column(name = "size",nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Size size;
 
+    @Column (name = "note")
+    private String note;
     @Column(name = "quantity", nullable = false)
     private int quantity;
 
@@ -54,6 +61,7 @@ public class Cartitem {
     private BigDecimal unitPrice;
 
     // Quan hệ 1 - N trỏ sang CartItemTopping (mappedBy khớp tên biến cartItem)
+    @Builder.Default
     @OneToMany(mappedBy = "cartItem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItemTopping> toppings = new ArrayList<>();
 
@@ -64,4 +72,10 @@ public class Cartitem {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public enum Size{
+        S,
+        M,
+        L
+    }
 }

@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,6 +23,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class CartItemTopping {
 
     @Id
@@ -31,7 +33,7 @@ public class CartItemTopping {
     // Quan hệ ManyToOne trỏ về CartItem cha
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cart_item_id", nullable = false)
-    private Cartitem cartItem;
+    private CartItem cartItem;
 
     // Quan hệ ManyToOne trỏ về Topping danh mục
     @ManyToOne(fetch = FetchType.LAZY)
@@ -43,6 +45,7 @@ public class CartItemTopping {
     private BigDecimal price;
 
     // Số lượng topping (ví dụ: x2 trân châu thì quantity = 2)
+    @Builder.Default
     @Column(name = "quantity", nullable = false)
     private int quantity = 1;
 }

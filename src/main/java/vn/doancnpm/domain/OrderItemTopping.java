@@ -28,12 +28,12 @@ public class OrderItemTopping {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Khóa ngoại trỏ ngược về OrderItem cha
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_item_id", nullable = false)
     private OrderItem orderItem; 
 
-    // Đã bỏ unique = true và đổi tên cột thành topping_id
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "topping_id", nullable = false)
     private Topping topping;
@@ -43,4 +43,7 @@ public class OrderItemTopping {
 
     @Column(name = "unit_price", nullable = false)
     private BigDecimal unitPrice;
+//them
+    @Column(name = "topping_name", nullable = false)
+    private String toppingName;
 }

@@ -18,6 +18,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,6 +27,7 @@ import lombok.Setter;
 @Table(name = "carts")
 @Getter 
 @Setter 
+@Builder
 @NoArgsConstructor 
 @AllArgsConstructor 
 public class Cart {
@@ -39,10 +41,10 @@ public class Cart {
     private Customer customer;
 
     @Column(name = "status")
-    private String status;
+    private Boolean status;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Cartitem> items ;
+    private List<CartItem> items ;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
