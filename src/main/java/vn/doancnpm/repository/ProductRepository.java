@@ -8,9 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.stereotype.Repository;
-
 import jakarta.persistence.LockModeType;
-
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,13 +18,13 @@ import vn.doancnpm.domain.Product;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByCategoryId(Long categoryId);
-    List<Product> findByStatus(String status);
-    List<Product> findByCategoryIdAndStatus(Long categoryId, String status);
+    List<Product> findByStatus(boolean status);
+    List<Product> findByCategoryIdAndStatus(Long categoryId, boolean status);
 
     @Query("""
             select p from Product p
             where (:categoryId is null or p.category.id = :categoryId)
-              and (:keyword is null or lower(p.name) like lower(concat('%', :keyword, '%')))
+              and (:keyword is null or lower(p.name) like lower(concat('%', cast(:keyword as string), '%')))
               and (:status is null or p.status = :status)
             """)
     Page<Product> search(@Param("categoryId") Long categoryId,
@@ -44,8 +42,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findMenu(); 
     boolean existsByNameIgnoreCase(String name);
     boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
-    boolean existsByImgURL(String imgURL);
-    boolean existsByImgURLAndIdNot(String imgURL, Long id);
+    //boolean existsByImgURL(String imgURL);
+    //boolean existsByImgURLAndIdNot(String imgURL, Long id);
     boolean existsByCategoryId(Long categoryId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

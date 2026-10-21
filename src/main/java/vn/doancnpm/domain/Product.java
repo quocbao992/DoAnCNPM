@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hibernate.annotations.ManyToAny;
+//import org.hibernate.annotations.ManyToAny;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,8 +46,8 @@ public class Product {
     @Column(name = "name",nullable = false)
     private String name;
 
-    @Column(name ="img_URL",nullable = false,unique = true)
-    private String imgURL;
+    //@Column(name ="img_URL",nullable = false,unique = true)
+    //private String imgURL;
 
     @Column(name ="stock",nullable = false)
     private Integer stock;
