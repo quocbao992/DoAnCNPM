@@ -118,16 +118,6 @@ public class ICartService implements CartService {
     }
 
     private CartItem maptoCartItem(CartRequest rq) {
-        List<Long> toppingIds = (rq.getItem().getToppings() != null)
-                ? rq.getItem().getToppings().stream()
-                        .map(CartItemToppingRequest::getToppingId)
-                        .toList()
-                : Collections.emptyList();
-
-        List<Topping> toppings = (toppingIds != null && !toppingIds.isEmpty())
-                ? toppingRepo.findAllById(toppingIds)
-                : Collections.emptyList();
-
         CartItem cartItem = CartItem.builder()
                         .quantity(rq.getItem().getQuantity())
                         .size(rq.getItem().getSize())

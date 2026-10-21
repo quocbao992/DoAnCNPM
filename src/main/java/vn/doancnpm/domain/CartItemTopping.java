@@ -45,6 +45,7 @@ public class CartItemTopping {
     private BigDecimal price;
 
     // Số lượng topping (ví dụ: x2 trân châu thì quantity = 2)
+    @Builder.Default
     @Column(name = "quantity", nullable = false)
     private int quantity = 1;
 }

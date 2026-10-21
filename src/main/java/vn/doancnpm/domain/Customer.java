@@ -33,13 +33,13 @@ public class Customer {
     @JoinColumn(name = "user_id",referencedColumnName = "id",unique = true,nullable = false)
     private User user;
 
-    @Column( name = "date_of_birth",nullable = false)
+    @Column(name = "date_of_birth")
     private LocalDate date;
 
-    @Column (name ="gender",nullable = false)
+    @Column(name = "gender")
     private boolean gender;
 
-     @Column (name="phone_number",nullable = false,unique = true,length = 10)
+    @Column(name = "phone_number", unique = true, length = 10)
     private String phone;
 
     @Builder.Default
