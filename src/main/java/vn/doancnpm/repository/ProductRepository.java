@@ -42,8 +42,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findMenu(); 
     boolean existsByNameIgnoreCase(String name);
     boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
-    boolean existsByImgURL(String imgURL);
-    boolean existsByImgURLAndIdNot(String imgURL, Long id);
+    //boolean existsByImgURL(String imgURL);
+    //boolean existsByImgURLAndIdNot(String imgURL, Long id);
     boolean existsByCategoryId(Long categoryId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
