@@ -88,6 +88,7 @@ public class ICheckoutService implements CheckoutService {
             oi.setOrder(order);
             oi.setProduct(ci.getProduct());
             oi.setProductName(ci.getProduct().getName());   // sao chép tên lúc đặt
+            oi.setProductImage(ci.getProduct().getImgURL()); // sao chép ảnh lúc đặt
             oi.setSize(ci.getSize().name());
             oi.setQuantity(ci.getQuantity());
             oi.setUnitPrice(ci.getUnitPrice());              // sao chép giá lúc đặt
