@@ -15,6 +15,7 @@ import vn.doancnpm.domain.InventoryLog;
 import vn.doancnpm.domain.Order;
 import vn.doancnpm.domain.OrderItem;
 import vn.doancnpm.domain.OrderItemTopping;
+import vn.doancnpm.dto.Request.CheckoutRequest;
 import vn.doancnpm.dto.Response.OrderResponse;
 import vn.doancnpm.repository.CartItemRepository;
 import vn.doancnpm.repository.CartRepository;
@@ -40,14 +41,12 @@ public class ICheckoutService implements CheckoutService {
     private final InventoryLogRepository inventoryLogRepo;
 
 
-    // TODO: khi có InventoryService: kiểm tra tồn kho ở checkout(), trừ kho ở confirmOrder()
-    // TODO: khi có PaymentService : PaymentService gọi confirmOrder() khi thanh toán thành công
-    // TODO: khi CartService  có hàm đóng giỏ: gọi hàm đó thay cho closeCart() bên dưới
-
     // Bước 1: chuyển giỏ hàng thành đơn PENDING (chưa trừ kho, chưa đóng giỏ)
     @Override
-    public OrderResponse checkout(Long customerId) {
+    public OrderResponse checkout(CheckoutRequest rq) {
+        Long customerId = rq.getCustomerId();
         Cart cart = findActiveCart(customerId);
+     
         if (cart == null) {
             throw new IllegalStateException("Không có giỏ hàng đang dùng");
         }
@@ -74,8 +73,13 @@ public class ICheckoutService implements CheckoutService {
         Order order = new Order();
         order.setCustomer(cart.getCustomer());
         order.setStatus(Order.Status.PENDING);
-        order.setDiscountAmount(BigDecimal.ZERO); // giảm giá / dùng điểm: bổ sung sau
+        order.setDiscountAmount(BigDecimal.ZERO); 
         order.setLoyaltyPointsUsed(0);
+        order.setOrderType(rq.getOrderType());
+        order.setTableNumber(rq.getTableNumber());
+        order.setPaymentMethod(rq.getPaymentMethod());
+        order.setNote(rq.getNote());
+        
 
         BigDecimal subtotal = BigDecimal.ZERO;
 
@@ -84,6 +88,7 @@ public class ICheckoutService implements CheckoutService {
             oi.setOrder(order);
             oi.setProduct(ci.getProduct());
             oi.setProductName(ci.getProduct().getName());   // sao chép tên lúc đặt
+            oi.setProductImage(ci.getProduct().getImgURL()); // sao chép ảnh lúc đặt
             oi.setSize(ci.getSize().name());
             oi.setQuantity(ci.getQuantity());
             oi.setUnitPrice(ci.getUnitPrice());              // sao chép giá lúc đặt
@@ -120,7 +125,10 @@ public class ICheckoutService implements CheckoutService {
         order.setSubtotal(subtotal);
         order.setTotalAmount(subtotal.subtract(order.getDiscountAmount()));
 
-        Order saved = orderRepo.save(order); // cascade lưu luôn items + toppings
+        Order saved = orderRepo.save(order);
+        saved.setOrderCode("BL"
+        + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE)
+        + String.format("%05d", saved.getId()));
         return orderService.getById(saved.getId());
     }
 
@@ -147,7 +155,7 @@ public class ICheckoutService implements CheckoutService {
             inventoryLogRepo.save(log);
         }
 
-        OrderResponse res = orderService.updateStatus(orderId, Order.Status.PAID);
+        OrderResponse res = orderService.updateStatus(orderId, Order.Status.PAID, null);
         closeCart(res.getCustomerId());
         return res;
     }

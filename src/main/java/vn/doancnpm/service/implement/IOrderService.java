@@ -1,43 +1,52 @@
 package vn.doancnpm.service.implement;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import vn.doancnpm.domain.Order;
 import vn.doancnpm.domain.OrderItem;
 import vn.doancnpm.domain.OrderItemTopping;
+import vn.doancnpm.dto.Response.AdminOrderResponse;
 import vn.doancnpm.dto.Response.OrderItemResponse;
 import vn.doancnpm.dto.Response.OrderItemToppingResponse;
 import vn.doancnpm.dto.Response.OrderResponse;
+import vn.doancnpm.dto.Response.OrderSummaryResponse;
+import vn.doancnpm.dto.Response.PageResponse;
 import vn.doancnpm.repository.OrderRepository;
+import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.service.OrderService;
-
+@SuppressWarnings("null")
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class IOrderService implements OrderService {
 
     private final OrderRepository orderRepo;
+    private final ProductRepository productRepo;
 
-    // ===================== Lịch sử mua hàng =====================
+    // ===================== Lịch sử đơn (có phân trang) =====================
     @Override
     @Transactional(readOnly = true)
-    public List<OrderResponse> getHistory(Long customerId, Order.Status status) {
-        List<Order> orders = (status == null)
-                ? orderRepo.findByCustomerIdOrderByCreatedAtDesc(customerId)
-                : orderRepo.findByCustomerIdAndStatus(customerId, status);
-        return orders.stream().map(this::mapToOrderResponse).toList();
-    }
-
-    // ===================== Danh sách đơn theo trạng thái (nhân viên) =====================
-    @Override
-    @Transactional(readOnly = true)
-    public List<OrderResponse> getByStatus(Order.Status status) {
-        return orderRepo.findByStatus(status).stream().map(this::mapToOrderResponse).toList();
+    public PageResponse<OrderSummaryResponse> getHistory(Long customerId, Order.Status status,
+            int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Order> result = (status == null)
+                ? orderRepo.findByCustomerId(customerId, pageable)
+                : orderRepo.findByCustomerIdAndStatus(customerId, status, pageable);
+        return PageResponse.of(result.map(this::mapToSummary));
     }
 
     // ===================== Chi tiết đơn =====================
@@ -47,9 +56,29 @@ public class IOrderService implements OrderService {
         return mapToOrderResponse(findOrder(orderId));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public OrderResponse getByCode(String orderCode) {
+        Order o = orderRepo.findByOrderCode(orderCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng " + orderCode));
+        return mapToOrderResponse(o);
+    }
+
+    // ===================== Hàng đợi Barista =====================
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getQueue(List<Order.Status> statuses) {
+        return orderRepo.findByStatusInOrderByCreatedAtAsc(statuses)
+                .stream().map(this::mapToOrderResponse).toList();
+    }
+
     // ===================== Cập nhật trạng thái =====================
     @Override
-    public OrderResponse updateStatus(Long orderId, Order.Status newStatus) {
+    public OrderResponse updateStatus(Long orderId, Order.Status newStatus, String reason) {
+        if (newStatus == Order.Status.CANCELLED) {
+            String r = (reason == null || reason.isBlank()) ? "Nhân viên hủy đơn" : reason;
+            return cancel(orderId, r);
+        }
         Order order = findOrder(orderId);
         if (!canChange(order.getStatus(), newStatus)) {
             throw new IllegalStateException(
@@ -59,17 +88,54 @@ public class IOrderService implements OrderService {
         return mapToOrderResponse(orderRepo.save(order));
     }
 
-    // ===================== Hủy đơn (chỉ khi PENDING hoặc PAYMENT_FAILED) =====================
-    // Hoàn điểm do LoyaltyService, trả kho do InventoryService xử lý
+    // ===================== Hủy đơn (PENDING / PAYMENT_FAILED / PAID) =====================
     @Override
-    public OrderResponse cancel(Long orderId) {
+    public OrderResponse cancel(Long orderId, String reason) {
         Order order = findOrder(orderId);
-        if (order.getStatus() != Order.Status.PENDING
-                && order.getStatus() != Order.Status.PAYMENT_FAILED) {
-            throw new IllegalStateException("Chỉ hủy được đơn PENDING hoặc PAYMENT_FAILED");
+        Order.Status st = order.getStatus();
+        if (st != Order.Status.PENDING && st != Order.Status.PAYMENT_FAILED
+                && st != Order.Status.PAID) {
+            throw new IllegalStateException("Chỉ hủy được đơn PENDING hoặc PAID");
+        }
+        // Đơn PAID đã bị trừ kho ở confirmOrder -> phải hoàn kho
+        if (st == Order.Status.PAID) {
+            for (OrderItem oi : order.getItems()) {
+                productRepo.restoreStock(oi.getProduct().getId(), oi.getQuantity());
+            }
+            
         }
         order.setStatus(Order.Status.CANCELLED);
+        order.setCancelReason(reason);
         return mapToOrderResponse(orderRepo.save(order));
+    }
+
+    // ===================== Admin: lọc + phân trang =====================
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<AdminOrderResponse> adminSearch(LocalDate fromDate, LocalDate toDate,
+            Order.Status status, Order.PaymentMethod paymentMethod, int page, int size) {
+
+        Specification<Order> spec = (root, query, cb) -> {
+            List<Predicate> ps = new ArrayList<>();
+            if (fromDate != null) {
+                ps.add(cb.greaterThanOrEqualTo(root.<LocalDateTime>get("createdAt"),
+                        fromDate.atStartOfDay()));
+            }
+            if (toDate != null) {
+                ps.add(cb.lessThan(root.<LocalDateTime>get("createdAt"),
+                        toDate.plusDays(1).atStartOfDay()));
+            }
+            if (status != null) {
+                ps.add(cb.equal(root.get("status"), status));
+            }
+            if (paymentMethod != null) {
+                ps.add(cb.equal(root.get("paymentMethod"), paymentMethod));
+            }
+            return cb.and(ps.toArray(new Predicate[0]));
+        };
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return PageResponse.of(orderRepo.findAll(spec, pageable).map(this::mapToAdmin));
     }
 
     // ===================== Hàm phụ =====================
@@ -79,17 +145,40 @@ public class IOrderService implements OrderService {
     }
 
     // PENDING -> PAID -> PREPARING -> READY -> COMPLETED
-    // PENDING -> PAYMENT_FAILED -> (thanh toán lại) PAID; hủy qua cancel()
+    // PENDING -> PAYMENT_FAILED -> PAID; hủy qua cancel()
     private boolean canChange(Order.Status from, Order.Status to) {
         return switch (from) {
-            case PENDING -> to == Order.Status.PAID || to == Order.Status.PAYMENT_FAILED
-                    || to == Order.Status.CANCELLED;
-            case PAYMENT_FAILED -> to == Order.Status.PAID || to == Order.Status.CANCELLED;
+            case PENDING -> to == Order.Status.PAID || to == Order.Status.PAYMENT_FAILED;
+            case PAYMENT_FAILED -> to == Order.Status.PAID;
             case PAID -> to == Order.Status.PREPARING;
             case PREPARING -> to == Order.Status.READY;
             case READY -> to == Order.Status.COMPLETED;
             default -> false; // COMPLETED, CANCELLED là trạng thái cuối
         };
+    }
+
+    private OrderSummaryResponse mapToSummary(Order o) {
+        int totalItems = o.getItems().stream().mapToInt(OrderItem::getQuantity).sum();
+        return OrderSummaryResponse.builder()
+                .id(o.getId())
+                .orderCode(o.getOrderCode())
+                .status(o.getStatus())
+                .totalAmount(o.getTotalAmount())
+                .totalItems(totalItems)
+                .createdAt(o.getCreatedAt())
+                .build();
+    }
+
+    private AdminOrderResponse mapToAdmin(Order o) {
+        return AdminOrderResponse.builder()
+                .id(o.getId())
+                .orderCode(o.getOrderCode())
+                .customerName(o.getCustomer().getUser().getFullName()) // đổi theo tên field thật của Customer
+                .phone(o.getCustomer().getPhone())           // đổi theo tên field thật của Customer
+                .totalAmount(o.getTotalAmount())
+                .status(o.getStatus())
+                .createdAt(o.getCreatedAt())
+                .build();
     }
 
     private OrderItemToppingResponse mapToToppingResponse(OrderItemTopping t) {
@@ -105,10 +194,14 @@ public class IOrderService implements OrderService {
         List<OrderItemToppingResponse> toppings = (i.getToppings() == null)
                 ? Collections.emptyList()
                 : i.getToppings().stream().map(this::mapToToppingResponse).toList();
+        String image = i.getProductImage() != null
+                ? i.getProductImage()
+                : (i.getProduct() != null ? i.getProduct().getImgURL() : null);
         return OrderItemResponse.builder()
                 .id(i.getId())
                 .productId(i.getProduct().getId())
                 .productName(i.getProductName())
+                .productImage(image)
                 .size(i.getSize())
                 .quantity(i.getQuantity())
                 .unitPrice(i.getUnitPrice())
@@ -120,8 +213,13 @@ public class IOrderService implements OrderService {
     private OrderResponse mapToOrderResponse(Order o) {
         return OrderResponse.builder()
                 .id(o.getId())
+                .orderCode(o.getOrderCode())
                 .customerId(o.getCustomer().getId())
                 .status(o.getStatus())
+                .orderType(o.getOrderType())
+                .tableNumber(o.getTableNumber())
+                .paymentMethod(o.getPaymentMethod())
+                .note(o.getNote())
                 .items(o.getItems().stream().map(this::mapToItemResponse).toList())
                 .subtotal(o.getSubtotal())
                 .discountAmount(o.getDiscountAmount())

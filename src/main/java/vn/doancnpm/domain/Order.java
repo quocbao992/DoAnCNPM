@@ -87,4 +87,23 @@ public class Order {
         PAYMENT_FAILED,
         CANCELLED
     }
+
+    public enum OrderType { DINE_IN, TAKE_AWAY }
+    public enum PaymentMethod { VNPAY, MOMO, CASH }
+
+    @Column(unique = true, length = 30)
+    private String orderCode;
+
+    @Enumerated(EnumType.STRING)
+    private OrderType orderType;
+
+    private String tableNumber;
+
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod paymentMethod;
+
+    @Column(length = 500)
+    private String note;
+
+    private String cancelReason;
 }

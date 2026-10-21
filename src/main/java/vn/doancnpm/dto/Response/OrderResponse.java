@@ -27,4 +27,9 @@ public class OrderResponse {
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String orderCode;
+    private Order.OrderType orderType;
+    private String tableNumber;
+    private Order.PaymentMethod paymentMethod;
+    private String note;
 }
