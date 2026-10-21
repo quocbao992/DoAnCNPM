@@ -66,4 +66,7 @@ public class OrderItem {
 //them
     @Column(name = "product_name", nullable = false)
     private String productName; 
+
+    @Column(name = "product_image")
+    private String productImage;
 }

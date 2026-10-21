@@ -28,7 +28,7 @@ import vn.doancnpm.dto.Response.PageResponse;
 import vn.doancnpm.repository.OrderRepository;
 import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.service.OrderService;
-
+@SuppressWarnings("null")
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -102,7 +102,7 @@ public class IOrderService implements OrderService {
             for (OrderItem oi : order.getItems()) {
                 productRepo.restoreStock(oi.getProduct().getId(), oi.getQuantity());
             }
-            // TODO: hoàn tiền (PaymentService), hoàn điểm (LoyaltyService), ghi InventoryLog
+            
         }
         order.setStatus(Order.Status.CANCELLED);
         order.setCancelReason(reason);
@@ -194,10 +194,14 @@ public class IOrderService implements OrderService {
         List<OrderItemToppingResponse> toppings = (i.getToppings() == null)
                 ? Collections.emptyList()
                 : i.getToppings().stream().map(this::mapToToppingResponse).toList();
+        String image = i.getProductImage() != null
+                ? i.getProductImage()
+                : (i.getProduct() != null ? i.getProduct().getImgURL() : null);
         return OrderItemResponse.builder()
                 .id(i.getId())
                 .productId(i.getProduct().getId())
                 .productName(i.getProductName())
+                .productImage(image)
                 .size(i.getSize())
                 .quantity(i.getQuantity())
                 .unitPrice(i.getUnitPrice())

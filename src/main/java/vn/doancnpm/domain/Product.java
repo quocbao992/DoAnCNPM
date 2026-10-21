@@ -46,8 +46,8 @@ public class Product {
     @Column(name = "name",nullable = false)
     private String name;
 
-    //@Column(name ="img_URL",nullable = false,unique = true)
-    //private String imgURL;
+    @Column(name = "img_URL")
+    private String imgURL;
 
     @Column(name ="stock",nullable = false)
     private Integer stock;
