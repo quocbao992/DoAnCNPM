@@ -26,11 +26,11 @@ public class InventoryLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "Id_M")
+    @Column(name = "Id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "Id_P", nullable = false)
+    @JoinColumn(name = "Id_P", nullable = false,unique = true)
     private Product product;
 
     @ManyToOne(fetch = FetchType.LAZY)

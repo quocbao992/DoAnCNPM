@@ -3,7 +3,9 @@ package vn.doancnpm.service.implement;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +28,6 @@ import vn.doancnpm.repository.CustomerRepository;
 import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.repository.ToppingRepository;
 import vn.doancnpm.service.CartService;
-
 
 @SuppressWarnings("null")
 @Service
@@ -55,11 +56,11 @@ public class ICartService implements CartService {
         incomingItem.setCart(cart);
         incomingItem.setProduct(product);
         incomingItem.setUnitPrice(product.getUnitPrice());
+        
         List<CartItem> existingItems = cartItemRepo.findByCartIdAndProductId(cart.getId(), product.getId());
 
-      CartItem matchedItem = null;
+        CartItem matchedItem = null;
         for (CartItem item : existingItems) {
-            
             boolean sameSize = Objects.equals(item.getSize(), incomingItem.getSize());
             if (sameSize && sameTopping(item.getToppings(), incomingItem.getToppings())) {
                 matchedItem = item;
@@ -79,26 +80,51 @@ public class ICartService implements CartService {
 
     @Override
     public CartResponse updateCartItem(Long cartItemId, int quantity) {
-       return null;
+        if (quantity < 1) {
+            throw new IllegalArgumentException("Số lượng món phải lớn hơn hoặc bằng 1");
+        }
+        CartItem cartItem = cartItemRepo.findById(cartItemId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy món trong giỏ hàng"));
+
+        cartItem.setQuantity(quantity);
+        cartItemRepo.save(cartItem);
+
+        return mapToCartResponse(cartItem.getCart());
     }
 
     @Override
     public void removeCartItem(Long cartItemId) {
-       
+        CartItem cartItem = cartItemRepo.findById(cartItemId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy món trong giỏ hàng"));
+        cartItemRepo.delete(cartItem);
     }
 
     @Override
-    public void clearCart() {
-      
+    public void clearCart(Long customerId) {
+        Customer customer = customerRepo.findById(customerId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng"));
+        
+        Cart cart = cartRepo.findByCustomerId(customer.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy giỏ hàng của khách hàng"));
+
+        List<CartItem> items = cartItemRepo.findByCart(cart);
+        if (!items.isEmpty()) {
+            cartItemRepo.deleteAll(items);
+        }
     }
 
     @Override
-    public CartResponse getCart() {
-      
-        return null;
+    public CartResponse getCart(Long customerId) {
+        Customer customer = customerRepo.findById(customerId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng"));
+
+        Cart cart = cartRepo.findByCustomerId(customer.getId())
+                .orElseGet(() -> cartRepo.save(Cart.builder().customer(customer).build()));
+
+        return mapToCartResponse(cart);
     }
 
-   Boolean sameTopping(List<CartItemTopping> list1, List<CartItemTopping> list2) {
+    boolean sameTopping(List<CartItemTopping> list1, List<CartItemTopping> list2) {
         boolean empty1 = (list1 == null || list1.isEmpty());
         boolean empty2 = (list2 == null || list2.isEmpty());
 
@@ -118,24 +144,38 @@ public class ICartService implements CartService {
     }
 
     private CartItem maptoCartItem(CartRequest rq) {
-        CartItem cartItem = CartItem.builder()
-                        .quantity(rq.getItem().getQuantity())
-                        .size(rq.getItem().getSize())
-                        .note(rq.getItem().getNote())
-                        .build();
-List<CartItemTopping> itemToppings = new java.util.ArrayList<>();
+        List<CartItemToppingRequest> toppingRequests = rq.getItem().getToppings();
+        Map<Long, Topping> toppingMap = Collections.emptyMap();
 
-        if (rq.getItem().getToppings() != null) {
-            for (CartItemToppingRequest topRq : rq.getItem().getToppings()) {
-                Topping t = toppingRepo.findById(topRq.getToppingId())
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy topping id: " + topRq.getToppingId()));
+        if (toppingRequests != null && !toppingRequests.isEmpty()) {
+            List<Long> toppingIds = toppingRequests.stream()
+                    .map(CartItemToppingRequest::getToppingId)
+                    .toList();
+            toppingMap = toppingRepo.findAllById(toppingIds).stream()
+                    .collect(Collectors.toMap(Topping::getId, t -> t));
+        }
+
+        CartItem cartItem = CartItem.builder()
+                .quantity(rq.getItem().getQuantity())
+                .size(rq.getItem().getSize())
+                .note(rq.getItem().getNote())
+                .build();
+
+        List<CartItemTopping> itemToppings = new java.util.ArrayList<>();
+
+        if (toppingRequests != null) {
+            for (CartItemToppingRequest topRq : toppingRequests) {
+                Topping t = toppingMap.get(topRq.getToppingId());
+                if (t == null) {
+                    throw new IllegalArgumentException("Không tìm thấy topping id: " + topRq.getToppingId());
+                }
 
                 CartItemTopping itemTopping = CartItemTopping.builder()
-                    .cartItem(cartItem)
-                    .topping(t)
-                    .price(t.getUnitPrice())
-                    .quantity(topRq.getQuantity())
-                    .build();
+                        .cartItem(cartItem)
+                        .topping(t)
+                        .price(t.getUnitPrice())
+                        .quantity(topRq.getQuantity())
+                        .build();
 
                 itemToppings.add(itemTopping);
             }
@@ -150,7 +190,7 @@ List<CartItemTopping> itemToppings = new java.util.ArrayList<>();
         return CartItemToppingResponse.builder()
                 .toppingId(cit.getTopping().getId())
                 .name(cit.getTopping().getName())
-                .unitPrice(cit.getTopping().getUnitPrice())
+                .unitPrice(cit.getPrice())
                 .build();
     }
 
@@ -160,7 +200,7 @@ List<CartItemTopping> itemToppings = new java.util.ArrayList<>();
 
         if (item.getToppings() != null && !item.getToppings().isEmpty()) {
             toppingTotal = item.getToppings().stream()
-                    .map(cit -> cit.getTopping().getUnitPrice())
+                    .map(cit -> cit.getPrice().multiply(BigDecimal.valueOf(cit.getQuantity())))
                     .filter(Objects::nonNull)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
