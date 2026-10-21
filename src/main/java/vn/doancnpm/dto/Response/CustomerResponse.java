@@ -11,13 +11,13 @@ public class CustomerResponse {
     private String phone;
     private LocalDate dateOfBirth;
     private boolean gender;
-    private int loyaltyPoint;
+    private int loyaltyPoints;
 
     public CustomerResponse() {
     }
 
     public CustomerResponse(Long id, String username, String email, String fullName, String phone,
-            LocalDate dateOfBirth, boolean gender, int loyaltyPoint) {
+            LocalDate dateOfBirth, boolean gender, int loyaltyPoints) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -25,7 +25,7 @@ public class CustomerResponse {
         this.phone = phone;
         this.dateOfBirth = dateOfBirth;
         this.gender = gender;
-        this.loyaltyPoint = loyaltyPoint;
+        this.loyaltyPoints = loyaltyPoints;
     }
 
     public Long getId() {
@@ -84,11 +84,19 @@ public class CustomerResponse {
         this.gender = gender;
     }
 
+    public int getLoyaltyPoints() {
+        return loyaltyPoints;
+    }
+
+    public void setLoyaltyPoints(int loyaltyPoints) {
+        this.loyaltyPoints = loyaltyPoints;
+    }
+
     public int getLoyaltyPoint() {
-        return loyaltyPoint;
+        return loyaltyPoints;
     }
 
     public void setLoyaltyPoint(int loyaltyPoint) {
-        this.loyaltyPoint = loyaltyPoint;
+        this.loyaltyPoints = loyaltyPoint;
     }
 }
