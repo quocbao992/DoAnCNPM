@@ -6,7 +6,7 @@ public class ProductRequest {
 
     private String name;
     private Long categoryId;
-    private String imgURL;
+    //private String imgURL;
     private BigDecimal unitPrice;
     private Integer stock;      // không gửi thì mặc định 0 khi tạo mới
     private Boolean status;     // true = đang bán, không gửi thì mặc định true khi tạo mới
@@ -14,11 +14,11 @@ public class ProductRequest {
     public ProductRequest() {
     }
 
-    public ProductRequest(String name, Long categoryId, String imgURL,
+    public ProductRequest(String name, Long categoryId, //String imgURL,
                           BigDecimal unitPrice, Integer stock, Boolean status) {
         this.name = name;
         this.categoryId = categoryId;
-        this.imgURL = imgURL;
+        //this.imgURL = imgURL;
         this.unitPrice = unitPrice;
         this.stock = stock;
         this.status = status;
@@ -40,13 +40,13 @@ public class ProductRequest {
         this.categoryId = categoryId;
     }
 
-    public String getImgURL() {
-        return imgURL;
-    }
+    //public String getImgURL() {
+    //  return imgURL;
+    //}
 
-    public void setImgURL(String imgURL) {
-        this.imgURL = imgURL;
-    }
+    //public void setImgURL(String imgURL) {
+    //    this.imgURL = imgURL;
+    //}
 
     public BigDecimal getUnitPrice() {
         return unitPrice;

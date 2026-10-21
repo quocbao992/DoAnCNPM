@@ -18,6 +18,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.Builder;
 
 @Entity 
 @Table(name = "payment")
@@ -25,6 +26,7 @@ import lombok.Setter;
 @NoArgsConstructor 
 @Getter 
 @Setter 
+@Builder
 public class Payment {
     @Id 
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,17 +43,20 @@ public class Payment {
     @Column(name = "method",nullable = false)
     private Method method;
 
+    @Column(name = "status", nullable = false)
+    private String status;
+
     @Column(name = "idempotency_key",nullable = false,unique = true)
     private String idempotencyKey;
 
 
-    @Column(name = "transaction_reference",nullable = false)
-    private String transactionRefer;
+    @Column(name = "transaction_reference")
+    private String transactionRef;
     
     @Column(name = "created_at",nullable = false)
     private LocalDateTime createdAt;
     
-    @Column(name = "paid_at",nullable = false)
+    @Column(name = "paid_at")
     private  LocalDateTime paidAt;
     public enum Method{
         VNPay,

@@ -43,7 +43,7 @@ public class IProductService implements ProductService {
                 category.getId(),
                 category.getName(),
                 product.getName(),
-                product.getImgURL(),
+                //product.getImgURL(),
                 product.getStock(),
                 product.getUnitPrice(),
                 product.isStatus());
@@ -80,9 +80,9 @@ public class IProductService implements ProductService {
             throw new IllegalArgumentException(
                     "Tên sản phẩm không được dài quá " + MAX_NAME_LENGTH + " ký tự");
         }
-        if (request.getImgURL() == null || request.getImgURL().trim().isEmpty()) {
-            throw new IllegalArgumentException("Ảnh sản phẩm không được để trống");
-        }
+        //if (request.getImgURL() == null || request.getImgURL().trim().isEmpty()) {
+        //    throw new IllegalArgumentException("Ảnh sản phẩm không được để trống");
+        //}
         if (request.getCategoryId() == null) {
             throw new IllegalArgumentException("Phải chọn danh mục cho sản phẩm");
         }
@@ -95,21 +95,21 @@ public class IProductService implements ProductService {
     public ProductResponse create(ProductRequest request) {
         validate(request);
         String name = request.getName().trim();
-        String imgURL = request.getImgURL().trim();
+        //String imgURL = request.getImgURL().trim();
 
         if (productRepository.existsByNameIgnoreCase(name)) {
             throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
         }
-        if (productRepository.existsByImgURL(imgURL)) {
-            throw new IllegalArgumentException("Ảnh này đã được dùng cho sản phẩm khác");
-        }
+        //if (productRepository.existsByImgURL(imgURL)) {
+        //    throw new IllegalArgumentException("Ảnh này đã được dùng cho sản phẩm khác");
+        //}
 
         Category category = categoryService.getActiveEntityById(request.getCategoryId());
 
         Product product = Product.builder()
                 .category(category)
                 .name(name)
-                .imgURL(imgURL)
+                //.imgURL(imgURL)
                 .unitPrice(request.getUnitPrice())
                 .stock(request.getStock() != null ? request.getStock() : 0)
                 .status(request.getStatus() != null ? request.getStatus() : true)
@@ -124,21 +124,21 @@ public class IProductService implements ProductService {
         Product product = findProductOrThrow(productId);
         validate(request);
         String name = request.getName().trim();
-        String imgURL = request.getImgURL().trim();
+        //String imgURL = request.getImgURL().trim();
 
         if (productRepository.existsByNameIgnoreCaseAndIdNot(name, productId)) {
             throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
         }
-        if (productRepository.existsByImgURLAndIdNot(imgURL, productId)) {
-            throw new IllegalArgumentException("Ảnh này đã được dùng cho sản phẩm khác");
-        }
+        //if (productRepository.existsByImgURLAndIdNot(imgURL, productId)) {
+        //    throw new IllegalArgumentException("Ảnh này đã được dùng cho sản phẩm khác");
+        //}
 
         if (!product.getCategory().getId().equals(request.getCategoryId())) {
             product.setCategory(categoryService.getActiveEntityById(request.getCategoryId()));
         }
 
         product.setName(name);
-        product.setImgURL(imgURL);
+        //product.setImgURL(imgURL);
         product.setUnitPrice(request.getUnitPrice());
         if (request.getStock() != null) {
             product.setStock(request.getStock());
