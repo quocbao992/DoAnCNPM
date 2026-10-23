@@ -8,20 +8,20 @@ public class ProductRequest {
     private Long categoryId;
     private String imgURL;
     private BigDecimal unitPrice;
-    private Integer stock;      // không gửi thì mặc định 0 khi tạo mới
-    private Boolean status;     // true = đang bán, không gửi thì mặc định true khi tạo mới
+    private Boolean status;    
+    private Long version;
 
     public ProductRequest() {
     }
 
     public ProductRequest(String name, Long categoryId, String imgURL,
-                          BigDecimal unitPrice, Integer stock, Boolean status) {
+                          BigDecimal unitPrice, Boolean status, Long version) {
         this.name = name;
         this.categoryId = categoryId;
         this.imgURL = imgURL;
         this.unitPrice = unitPrice;
-        this.stock = stock;
         this.status = status;
+        this.version = version;
     }
 
     public String getName() {
@@ -56,19 +56,19 @@ public class ProductRequest {
         this.unitPrice = unitPrice;
     }
 
-    public Integer getStock() {
-        return stock;
-    }
-
-    public void setStock(Integer stock) {
-        this.stock = stock;
-    }
-
     public Boolean getStatus() {
         return status;
     }
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public Long getVersion(){
+        return version;
+    }
+
+    public void setVersion(Long version){
+        this.version = version;
     }
 }

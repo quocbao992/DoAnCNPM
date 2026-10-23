@@ -14,7 +14,6 @@ public interface ProductService {
     ProductResponse update(Long productId, ProductRequest request);
     ProductResponse updatePrice(Long productId, BigDecimal newPrice);
     ProductResponse updateStatus(Long productId, boolean status);
-    ProductResponse updateStock(Long productId, int stock);
     void delete(Long productId);
 
     ProductResponse getById(Long productId);

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,7 +47,8 @@ public class IProductService implements ProductService {
                 product.getImgURL(),
                 product.getStock(),
                 product.getUnitPrice(),
-                product.isStatus());
+                product.isStatus(),
+                product.getVersion());
     }
 
     private List<ProductResponse> convertToResponses(List<Product> products) {
@@ -66,12 +68,6 @@ public class IProductService implements ProductService {
         return price;
     }
 
-    private void validateStock(Integer stock) {
-        if (stock != null && stock < 0) {
-            throw new IllegalArgumentException("Tồn kho không được âm");
-        }
-    }
-
     private void validate(ProductRequest request) {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Tên sản phẩm không được để trống");
@@ -84,7 +80,6 @@ public class IProductService implements ProductService {
             throw new IllegalArgumentException("Phải chọn danh mục cho sản phẩm");
         }
         validatePrice(request.getUnitPrice());
-        validateStock(request.getStock());
     }
 
     @Override
@@ -105,7 +100,7 @@ public class IProductService implements ProductService {
                 .name(name)
                 .imgURL(imgURL)
                 .unitPrice(request.getUnitPrice())
-                .stock(request.getStock() != null ? request.getStock() : 0)
+                .stock(0)
                 .status(request.getStatus() != null ? request.getStatus() : true)
                 .build();
 
@@ -117,6 +112,10 @@ public class IProductService implements ProductService {
     public ProductResponse update(Long productId, ProductRequest request) {
         Product product = findProductOrThrow(productId);
         validate(request);
+        if(request.getVersion() != null && !request.getVersion().equals(product.getVersion())){
+            throw new ObjectOptimisticLockingFailureException(Product.class, productId);
+        }
+
         String name = request.getName().trim();
         String imgURL = request.getImgURL() != null ? request.getImgURL().trim() : null;
 
@@ -131,9 +130,6 @@ public class IProductService implements ProductService {
         product.setName(name);
         product.setImgURL(imgURL);
         product.setUnitPrice(request.getUnitPrice());
-        if (request.getStock() != null) {
-            product.setStock(request.getStock());
-        }
         if (request.getStatus() != null) {
             product.setStatus(request.getStatus());
         }
@@ -155,18 +151,6 @@ public class IProductService implements ProductService {
     public ProductResponse updateStatus(Long productId, boolean status) {
         Product product = findProductOrThrow(productId);
         product.setStatus(status);
-        return convertToResponse(productRepository.save(product));
-    }
-
-    @Override
-    @Transactional
-    public ProductResponse updateStock(Long productId, int stock) {
-        validateStock(stock);
-        // Khóa dòng sản phẩm: nếu đang có đơn trừ kho thì phải đợi đơn đó xong
-        Product product = productRepository.findByIdForUpdate(productId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Không tìm thấy sản phẩm với ID: " + productId));
-        product.setStock(stock);
         return convertToResponse(productRepository.save(product));
     }
 
@@ -223,8 +207,6 @@ public class IProductService implements ProductService {
     public List<ProductResponse> getMenu() {
         return convertToResponses(productRepository.findMenu());
     }
-
-    // ======================== Hàm dùng chung cho module khác ========================
 
     @Override
     public boolean existsById(Long productId) {
