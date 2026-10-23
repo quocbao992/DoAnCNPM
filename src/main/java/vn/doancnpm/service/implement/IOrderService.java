@@ -28,6 +28,7 @@ import vn.doancnpm.dto.Response.PageResponse;
 import vn.doancnpm.repository.OrderRepository;
 import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.service.OrderService;
+import vn.doancnpm.service.LoyaltyService;
 @SuppressWarnings("null")
 @Service
 @RequiredArgsConstructor
@@ -36,6 +37,7 @@ public class IOrderService implements OrderService {
 
     private final OrderRepository orderRepo;
     private final ProductRepository productRepo;
+    private final LoyaltyService loyaltyService;
 
     // ===================== Lịch sử đơn (có phân trang) =====================
     @Override
@@ -85,7 +87,11 @@ public class IOrderService implements OrderService {
                     "Không thể chuyển đơn từ " + order.getStatus() + " sang " + newStatus);
         }
         order.setStatus(newStatus);
-        return mapToOrderResponse(orderRepo.save(order));
+        Order saved = orderRepo.save(order);
+        if (newStatus == Order.Status.COMPLETED) {
+            loyaltyService.earnPoints(orderId);   // cộng điểm thưởng
+        }
+        return mapToOrderResponse(saved);
     }
 
     // ===================== Hủy đơn (PENDING / PAYMENT_FAILED / PAID) =====================
@@ -106,7 +112,9 @@ public class IOrderService implements OrderService {
         }
         order.setStatus(Order.Status.CANCELLED);
         order.setCancelReason(reason);
-        return mapToOrderResponse(orderRepo.save(order));
+        Order saved = orderRepo.save(order);
+        loyaltyService.revertPoints(orderId);   // trả lại điểm khách đã dùng
+        return mapToOrderResponse(saved);
     }
 
     // ===================== Admin: lọc + phân trang =====================
