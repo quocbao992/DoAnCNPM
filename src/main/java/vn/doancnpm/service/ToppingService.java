@@ -1,18 +1,14 @@
 package vn.doancnpm.service;
 
-import vn.doancnpm.domain.Topping;
+import vn.doancnpm.dto.Request.ToppingRequest;
+import vn.doancnpm.dto.Response.ToppingResponse;
 import java.util.List;
-
-public interface ToppingService {
-    // Lấy danh sách các topping đang được bán
-    List<Topping> getActiveToppings();
-
-    // Thêm topping mới
-    Topping createTopping(Topping topping);
-
-    // Cập nhật thông tin topping
-    Topping updateTopping(Long id, Topping newDetails);
-
-    // Ngừng kinh doanh topping (Xóa mềm)
-    void hideTopping(Long id);
+    public interface ToppingService {
+    //List<ToppingResponse> getActiveToppings(); 
+    List<ToppingResponse> getAllToppings(Boolean status);//lấy ds topping
+    ToppingResponse getToppingById(Long id); // lấy topping theo id
+    ToppingResponse createTopping(ToppingRequest request);// tạo mới
+    ToppingResponse updateTopping(Long id, ToppingRequest request);// cập nhập thông tin
+    ToppingResponse updateStatus(Long id, boolean status);//cập nhập trạng thái
+    
 }

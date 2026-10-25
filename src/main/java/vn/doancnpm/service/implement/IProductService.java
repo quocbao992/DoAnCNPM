@@ -15,12 +15,15 @@ import lombok.RequiredArgsConstructor;
 
 import vn.doancnpm.domain.Category;
 import vn.doancnpm.domain.Product;
+import vn.doancnpm.domain.InventoryProduct;
+import vn.doancnpm.domain.Inventory;
 import vn.doancnpm.dto.Request.ProductRequest;
 import vn.doancnpm.dto.Response.PageResponse;
 import vn.doancnpm.dto.Response.ProductResponse;
 import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.service.CategoryService;
 import vn.doancnpm.service.ProductService;
+import vn.doancnpm.service.InventoryService;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +37,9 @@ public class IProductService implements ProductService {
     private static final int MAX_FEATURED_LIMIT = 50;
 
     private final ProductRepository productRepository;
+
+    private final InventoryService inventoryService;//tui thêm
+
     private final CategoryService categoryService;
 
     private ProductResponse convertToResponse(Product product) {
@@ -78,74 +84,50 @@ public class IProductService implements ProductService {
         }
         if (request.getName().trim().length() > MAX_NAME_LENGTH) {
             throw new IllegalArgumentException(
-                    "Tên sản phẩm không được dài quá " + MAX_NAME_LENGTH + " ký tự");
+                    "Tên sản phẩm không được vượt quá " + MAX_NAME_LENGTH + " ký tự");
         }
-        //if (request.getImgURL() == null || request.getImgURL().trim().isEmpty()) {
-        //    throw new IllegalArgumentException("Ảnh sản phẩm không được để trống");
-        //}
-        if (request.getCategoryId() == null) {
-            throw new IllegalArgumentException("Phải chọn danh mục cho sản phẩm");
-        }
-        validatePrice(request.getUnitPrice());
-        validateStock(request.getStock());
     }
 
     @Override
     @Transactional
     public ProductResponse create(ProductRequest request) {
         validate(request);
-        String name = request.getName().trim();
-        //String imgURL = request.getImgURL().trim();
+        validatePrice(request.getUnitPrice());
+        validateStock(request.getStock());
 
-        if (productRepository.existsByNameIgnoreCase(name)) {
-            throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
+        Product product = new Product();
+        product.setName(request.getName().trim());
+        product.setUnitPrice(request.getUnitPrice());
+        product.setStock(request.getStock() == null ? 0 : request.getStock());
+        product.setStatus(true);
+        product.setCategory(categoryService.getEntityById(request.getCategoryId()));
+
+        //return convertToResponse(productRepository.save(product)); của Duyên
+        // MỚI
+        Product saved = productRepository.save(product);
+
+        // Tạo dòng tồn kho tương ứng trong inventory_product (và ghi log)
+        if (saved.getStock() != null && saved.getStock() > 0) {
+            inventoryService.addStock(saved.getId(), null, null, saved.getStock(), "INITIAL_STOCK");
         }
-        //if (productRepository.existsByImgURL(imgURL)) {
-        //    throw new IllegalArgumentException("Ảnh này đã được dùng cho sản phẩm khác");
-        //}
 
-        Category category = categoryService.getActiveEntityById(request.getCategoryId());
-
-        Product product = Product.builder()
-                .category(category)
-                .name(name)
-                //.imgURL(imgURL)
-                .unitPrice(request.getUnitPrice())
-                .stock(request.getStock() != null ? request.getStock() : 0)
-                .status(request.getStatus() != null ? request.getStatus() : true)
-                .build();
-
-        return convertToResponse(productRepository.save(product));
+        return convertToResponse(saved);
     }
 
     @Override
     @Transactional
     public ProductResponse update(Long productId, ProductRequest request) {
-        Product product = findProductOrThrow(productId);
         validate(request);
-        String name = request.getName().trim();
-        //String imgURL = request.getImgURL().trim();
+        validatePrice(request.getUnitPrice());
+        validateStock(request.getStock());
 
-        if (productRepository.existsByNameIgnoreCaseAndIdNot(name, productId)) {
-            throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
-        }
-        //if (productRepository.existsByImgURLAndIdNot(imgURL, productId)) {
-        //    throw new IllegalArgumentException("Ảnh này đã được dùng cho sản phẩm khác");
-        //}
-
-        if (!product.getCategory().getId().equals(request.getCategoryId())) {
-            product.setCategory(categoryService.getActiveEntityById(request.getCategoryId()));
-        }
-
-        product.setName(name);
-        //product.setImgURL(imgURL);
+        Product product = findProductOrThrow(productId);
+        product.setName(request.getName().trim());
         product.setUnitPrice(request.getUnitPrice());
         if (request.getStock() != null) {
             product.setStock(request.getStock());
         }
-        if (request.getStatus() != null) {
-            product.setStatus(request.getStatus());
-        }
+        product.setCategory(categoryService.getEntityById(request.getCategoryId()));
 
         return convertToResponse(productRepository.save(product));
     }
@@ -217,7 +199,8 @@ public class IProductService implements ProductService {
         if (!categoryService.existsById(categoryId)) {
             throw new EntityNotFoundException("Không tìm thấy danh mục với ID: " + categoryId);
         }
-        Pageable all = PageRequest.of(0, Integer.MAX_VALUE, Sort.by("name").ascending());        return convertToResponses(
+        Pageable all = PageRequest.of(0, Integer.MAX_VALUE, Sort.by("name").ascending());       
+        return convertToResponses(
                 productRepository.search(categoryId, null, status, all).getContent());
     }
 

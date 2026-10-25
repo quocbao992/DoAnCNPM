@@ -4,7 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import vn.doancnpm.domain.Topping;
+import vn.doancnpm.dto.Request.ToppingRequest;
+import vn.doancnpm.dto.Response.ToppingResponse;
 import vn.doancnpm.service.ToppingService;
 
 import java.util.List;
@@ -15,31 +16,39 @@ import java.util.List;
 public class ToppingController {
 
     private final ToppingService toppingService;
-
-    // 1. Lấy danh sách topping đang hoạt động (status = true)
+    
     @GetMapping
-    public ResponseEntity<List<Topping>> getActiveToppings() {
-        return ResponseEntity.ok(toppingService.getActiveToppings());
+    public ResponseEntity<List<ToppingResponse>> getAllToppings(
+            @RequestParam(required = false) Boolean status) {
+        return ResponseEntity.ok(toppingService.getAllToppings(status));
     }
 
-    // 2. Thêm mới Topping
+    // 1 Lấy chi tiết một topping theo ID
+        @GetMapping("/{id}")
+        public ResponseEntity<ToppingResponse> getToppingById(@PathVariable Long id) {
+            return ResponseEntity.ok(toppingService.getToppingById(id));
+        }
+    // 2 Thêm mới Topping
     @PostMapping
-    public ResponseEntity<Topping> createTopping(@RequestBody Topping topping) {
-        Topping created = toppingService.createTopping(topping);
+    public ResponseEntity<ToppingResponse> createTopping(@RequestBody ToppingRequest request) {
+        ToppingResponse created = toppingService.createTopping(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // 3. Cập nhật tên và đơn giá Topping
+    // 3 Cập nhật tên và đơn giá Topping
     @PutMapping("/{id}")
-    public ResponseEntity<Topping> updateTopping(@PathVariable Long id, @RequestBody Topping topping) {
-        Topping updated = toppingService.updateTopping(id, topping);
+    public ResponseEntity<ToppingResponse> updateTopping(
+            @PathVariable Long id, 
+            @RequestBody ToppingRequest request) {
+        ToppingResponse updated = toppingService.updateTopping(id, request);
         return ResponseEntity.ok(updated);
     }
-
-    // 4. Ẩn Topping (Soft delete - chuyển status thành false)
-    @PatchMapping("/{id}/hide")
-    public ResponseEntity<String> hideTopping(@PathVariable Long id) {
-        toppingService.hideTopping(id);
-        return ResponseEntity.ok("Topping với ID " + id + " đã được ẩn thành công.");
-    }
+    // 4 cập nhật trạng thái
+    @PatchMapping("/{id}/status")
+        public ResponseEntity<ToppingResponse> updateToppingStatus(
+                @PathVariable Long id,
+                @RequestParam boolean status) {
+            ToppingResponse updated = toppingService.updateStatus(id, status);
+            return ResponseEntity.ok(updated);
+        }
 }

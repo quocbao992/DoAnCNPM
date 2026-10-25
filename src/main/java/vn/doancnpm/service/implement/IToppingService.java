@@ -3,50 +3,124 @@ package vn.doancnpm.service.implement;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
+import vn.doancnpm.domain.Inventory;
+import vn.doancnpm.domain.InventoryTopping;
 import vn.doancnpm.domain.Topping;
+import vn.doancnpm.dto.Request.ToppingRequest;
+import vn.doancnpm.dto.Response.ToppingResponse;
+import vn.doancnpm.repository.InventoryRepository;
+import vn.doancnpm.repository.InventoryToppingRepository;
 import vn.doancnpm.repository.ToppingRepository;
 import vn.doancnpm.service.ToppingService;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class IToppingService implements ToppingService {
 
     private final ToppingRepository toppingRepository;
+    private final InventoryToppingRepository inventoryToppingRepository;
+    private final InventoryRepository inventoryRepository;
 
     @Override
-    public List<Topping> getActiveToppings() {
-        return toppingRepository.findByStatus(true);
-    }
-
-    @Override
-    @Transactional
-    public Topping createTopping(Topping topping) {
-        if (topping.getStock() == null) {
-            topping.setStock(0);
+    @Transactional(readOnly = true)
+    public List<ToppingResponse> getAllToppings(Boolean status) {
+        List<Topping> toppings;
+        // Nếu truyền status (true/false) thì lọc theo status, nếu null thì lấy tất cả
+        if (status != null) {
+            toppings = toppingRepository.findByStatus(status);
+        } else {
+            toppings = toppingRepository.findAll();
         }
-        topping.setStatus(true);
-        return toppingRepository.save(topping);
+
+        return toppings.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ToppingResponse getToppingById(Long id) {
+        Topping topping = toppingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Topping với ID: " + id));
+        return mapToResponse(topping);
     }
 
     @Override
     @Transactional
-    public Topping updateTopping(Long id, Topping newDetails) {
+    public ToppingResponse createTopping(ToppingRequest request) {
+        // 1. Chuyển từ Request DTO sang Entity Topping
+        Topping topping = Topping.builder()
+                .name(request.getName())
+                .unitPrice(request.getUnitPrice())
+                .status(true)
+                .build();
+        Topping savedTopping = toppingRepository.save(topping);
+
+        // 2. Lấy kho mặc định (Lấy kho đầu tiên trong DB, nếu chưa có kho nào thì tạo mới)
+        // LƯU Ý: Tuyệt đối KHÔNG gán .id(1L) vào builder để tránh lỗi 500 của Hibernate!
+        Inventory defaultInventory = inventoryRepository.findAll().stream()
+                .findFirst()
+                .orElseGet(() -> {
+                    Inventory newInv = Inventory.builder()
+                            .name("Kho Tổng")
+                            .location("Chi nhánh chính")
+                            .status(true)
+                            .build();
+                    return inventoryRepository.save(newInv);
+                });
+
+        // 3. Khởi tạo tồn kho ban đầu (stock = 0)
+        InventoryTopping initialStock = InventoryTopping.builder()
+                .inventory(defaultInventory)
+                .topping(savedTopping)
+                .stock(0) 
+                .minThreshold(10)
+                .build();
+        inventoryToppingRepository.save(initialStock);
+
+        // 4. Trả về Response DTO
+        return mapToResponse(savedTopping, 0);
+    }
+
+    @Override
+    @Transactional
+    public ToppingResponse updateTopping(Long id, ToppingRequest request) {
         Topping existingTopping = toppingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Topping với ID: " + id));
 
-        existingTopping.setName(newDetails.getName());
-        existingTopping.setUnitPrice(newDetails.getUnitPrice());
+        existingTopping.setName(request.getName());
+        existingTopping.setUnitPrice(request.getUnitPrice());
 
-        return toppingRepository.save(existingTopping);
+        Topping updated = toppingRepository.save(existingTopping);
+        return mapToResponse(updated);
     }
 
     @Override
     @Transactional
-    public void hideTopping(Long id) {
+    public ToppingResponse updateStatus(Long id, boolean status) {
         Topping topping = toppingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Topping với ID: " + id));
-        topping.setStatus(false);
-        toppingRepository.save(topping);
+        topping.setStatus(status);
+        Topping updated = toppingRepository.save(topping);
+        return mapToResponse(updated);
+    }
+    // --- HÀM PHỤ TRỢ CHUYỂN ENTITY SANG RESPONSE DTO ---
+    private ToppingResponse mapToResponse(Topping topping) {
+        Integer currentStock = inventoryToppingRepository.findByToppingId(topping.getId())
+                .map(InventoryTopping::getStock)
+                .orElse(0);
+        return mapToResponse(topping, currentStock);
+    }
+
+    private ToppingResponse mapToResponse(Topping topping, Integer stock) {
+        return ToppingResponse.builder()
+                .id(topping.getId())
+                .name(topping.getName())
+                .unitPrice(topping.getUnitPrice())
+                .stock(stock)
+                .status(topping.getStatus())
+                .build();
     }
 }
