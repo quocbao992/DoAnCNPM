@@ -99,6 +99,7 @@ CREATE TABLE order_items (
     order_id BIGINT NOT NULL REFERENCES orders(id),
     product_id BIGINT NOT NULL REFERENCES products(id),
     product_name_snapshot NVARCHAR(150) NOT NULL,
+    product_image NVARCHAR(500) NULL,
     size_name NVARCHAR(10) NOT NULL DEFAULT 'M' CHECK (size_name IN ('S', 'M', 'L')),
     sugar_level NVARCHAR(20) NOT NULL DEFAULT '100%' CHECK (sugar_level IN ('0%', '30%', '50%', '70%', '100%')),
     ice_level NVARCHAR(20) NOT NULL DEFAULT '100%' CHECK (ice_level IN ('NO_ICE', '30%', '50%', '100%')),

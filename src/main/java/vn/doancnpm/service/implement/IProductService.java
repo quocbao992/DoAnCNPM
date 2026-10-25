@@ -49,7 +49,7 @@ public class IProductService implements ProductService {
                 category.getId(),
                 category.getName(),
                 product.getName(),
-                //product.getImgURL(),
+                product.getImgURL(),
                 product.getStock(),
                 product.getUnitPrice(),
                 product.isStatus());
@@ -61,7 +61,7 @@ public class IProductService implements ProductService {
 
     private Product findProductOrThrow(Long productId) {
         return productRepository.findById(productId)
-                .orElseThrow(() -> new EntityNotFoundException(
+                .orElseThrow(() -> new EntityNotFoundException(                                                                            
                         "Không tìm thấy sản phẩm với ID: " + productId));
     }
 
@@ -88,6 +88,7 @@ public class IProductService implements ProductService {
         }
     }
 
+    /* 
     @Override
     @Transactional
     public ProductResponse create(ProductRequest request) {
@@ -128,6 +129,61 @@ public class IProductService implements ProductService {
             product.setStock(request.getStock());
         }
         product.setCategory(categoryService.getEntityById(request.getCategoryId()));
+
+        return convertToResponse(productRepository.save(product));
+    }*/
+
+    @Override
+    @Transactional
+    public ProductResponse create(ProductRequest request) {
+        validate(request);
+        validatePrice(request.getUnitPrice());
+        validateStock(request.getStock());
+
+        String name = request.getName().trim();
+        String imgURL = request.getImgURL() != null ? request.getImgURL().trim() : null;
+
+        Product product = new Product();
+        product.setName(name);
+        product.setImgURL(imgURL);
+        product.setUnitPrice(request.getUnitPrice());
+        product.setStock(request.getStock() == null ? 0 : request.getStock());
+        product.setStatus(request.getStatus() != null ? request.getStatus() : true);
+        product.setCategory(categoryService.getActiveEntityById(request.getCategoryId()));
+
+        Product saved = productRepository.save(product);
+
+        // Phần của bạn: tạo tồn kho + ghi log
+        if (saved.getStock() != null && saved.getStock() > 0) {
+            inventoryService.addStock(saved.getId(), null, null, saved.getStock(), "INITIAL_STOCK");
+        }
+
+        return convertToResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public ProductResponse update(Long productId, ProductRequest request) {
+        validate(request);
+        validatePrice(request.getUnitPrice());
+        validateStock(request.getStock());
+
+        String name = request.getName().trim();
+        String imgURL = request.getImgURL() != null ? request.getImgURL().trim() : null;
+
+        Product product = findProductOrThrow(productId);
+
+        if (productRepository.existsByNameIgnoreCaseAndIdNot(name, productId)) {
+            throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
+        }
+
+        product.setName(name);
+        product.setImgURL(imgURL);
+        product.setUnitPrice(request.getUnitPrice());
+        if (request.getStock() != null) {
+            product.setStock(request.getStock());
+        }
+        product.setCategory(categoryService.getActiveEntityById(request.getCategoryId()));
 
         return convertToResponse(productRepository.save(product));
     }

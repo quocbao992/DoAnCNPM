@@ -34,7 +34,7 @@ public class InventoryController {
     public ResponseEntity<InventoryStockResponse> getToppingStock(@PathVariable Long toppingId) {
         return ResponseEntity.ok(inventoryService.getToppingStock(toppingId));
     }
-    // thêm topping
+    //2. thêm topping
     @PostMapping("/toppings/import")
     public ResponseEntity<String> importTopping(@RequestBody StockUpdateRequest request) {
         requireId(request.getToppingId(), "toppingId");
@@ -44,7 +44,7 @@ public class InventoryController {
         inventoryService.addStock(null, request.getToppingId(), null, amount, reason);
         return ResponseEntity.ok("Nhập kho Topping thành công! Số lượng nhập: " + amount);
     }
-    //trừ topping
+    //3.trừ topping
     @PostMapping("/toppings/deduct")
     public ResponseEntity<String> deductTopping(@RequestBody StockUpdateRequest request) {
         requireId(request.getToppingId(), "toppingId");

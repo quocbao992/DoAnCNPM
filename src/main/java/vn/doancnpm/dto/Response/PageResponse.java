@@ -1,5 +1,6 @@
 package vn.doancnpm.dto.Response;
 
+import org.springframework.data.domain.Page;
 import java.util.List;
 
 public class PageResponse<T> {
@@ -10,6 +11,14 @@ public class PageResponse<T> {
     private long totalElements;     // tổng số phần tử
     private int totalPages;         // tổng số trang
 
+    public static <T> PageResponse<T> of(Page<T> p) {
+    return new PageResponse<>(
+            p.getContent(),
+            p.getNumber(),
+            p.getSize(),
+            p.getTotalElements(),
+            p.getTotalPages());
+    }
     public PageResponse() {
     }
 

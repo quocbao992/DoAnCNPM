@@ -13,6 +13,8 @@ import vn.doancnpm.domain.Order;
 @AllArgsConstructor
 public class UpdateOrderStatusRequest {
 
-    @NotNull(message = "status không được để trống")
+    @NotNull
     private Order.Status status;
+
+    private String reason;
 }
