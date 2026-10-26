@@ -1,8 +1,10 @@
 package vn.doancnpm.service.implement;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,18 +17,16 @@ import vn.doancnpm.domain.InventoryLog;
 import vn.doancnpm.domain.Order;
 import vn.doancnpm.domain.OrderItem;
 import vn.doancnpm.domain.OrderItemTopping;
+import vn.doancnpm.domain.Product;
 import vn.doancnpm.dto.Request.CheckoutRequest;
 import vn.doancnpm.dto.Response.OrderResponse;
 import vn.doancnpm.repository.CartItemRepository;
 import vn.doancnpm.repository.CartRepository;
 import vn.doancnpm.repository.InventoryLogRepository;
 import vn.doancnpm.repository.OrderRepository;
+import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.service.CheckoutService;
 import vn.doancnpm.service.OrderService;
-import java.util.HashMap;
-import java.util.Map;
-import vn.doancnpm.domain.Product;
-import vn.doancnpm.repository.ProductRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -139,11 +139,19 @@ public class ICheckoutService implements CheckoutService {
             .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn " + orderId));
 
         for (OrderItem oi : order.getItems()) {
-            // 1. Trừ tồn kho
-            int updated = productRepo.deductStock(oi.getProduct().getId(), oi.getQuantity());
-            if (updated == 0) {
+            Product p = productRepo.findById(oi.getProduct().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm"));
+
+            int stock = p.getStock() == null ? 0 : p.getStock();
+            if (stock < oi.getQuantity()) {
                 throw new IllegalStateException("Không đủ hàng: " + oi.getProductName());
             }
+            // TẠM để test: giữ 3 giây cho 2 request cùng đọc dữ liệu cũ. Test xong XÓA.
+            try { Thread.sleep(3000); } catch (InterruptedException ignored) {}
+
+            p.setStock(stock - oi.getQuantity());
+            productRepo.saveAndFlush(p);  
+        
 
             // 2. Ghi nhật ký vào inventory_log
             InventoryLog log = new InventoryLog();
