@@ -27,6 +27,12 @@ import vn.doancnpm.repository.OrderRepository;
 import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.service.CheckoutService;
 import vn.doancnpm.service.OrderService;
+import vn.doancnpm.service.LoyaltyService;
+import vn.doancnpm.service.PromotionService;
+import java.util.HashMap;
+import java.util.Map;
+import vn.doancnpm.domain.Product;
+import vn.doancnpm.repository.ProductRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +45,8 @@ public class ICheckoutService implements CheckoutService {
     private final OrderService orderService;
     private final ProductRepository productRepo;
     private final InventoryLogRepository inventoryLogRepo;
+    private final LoyaltyService loyaltyService;
+    private final PromotionService promotionService;
 
 
     // Bước 1: chuyển giỏ hàng thành đơn PENDING (chưa trừ kho, chưa đóng giỏ)
@@ -73,8 +81,6 @@ public class ICheckoutService implements CheckoutService {
         Order order = new Order();
         order.setCustomer(cart.getCustomer());
         order.setStatus(Order.Status.PENDING);
-        order.setDiscountAmount(BigDecimal.ZERO); 
-        order.setLoyaltyPointsUsed(0);
         order.setOrderType(rq.getOrderType());
         order.setTableNumber(rq.getTableNumber());
         order.setPaymentMethod(rq.getPaymentMethod());
@@ -123,9 +129,35 @@ public class ICheckoutService implements CheckoutService {
         }
 
         order.setSubtotal(subtotal);
+
+        // 1. Mã khuyến mãi
+        String code = rq.getVoucherCode();
+        BigDecimal promoDiscount = BigDecimal.ZERO;
+        if (code != null && !code.isBlank()) {
+            promoDiscount = promotionService.calculateDiscount(code, subtotal);
+        }
+        BigDecimal afterPromo = subtotal.subtract(promoDiscount);
+
+        // 2. Điểm quy đổi
+        int points = rq.getLoyaltyPointsUsed() == null ? 0 : rq.getLoyaltyPointsUsed();
+        BigDecimal pointsDiscount = BigDecimal.ZERO;
+        if (points > 0) {
+            loyaltyService.validateRedeem(customerId, points);
+            pointsDiscount = loyaltyService.calculateDiscountFromPoints(points);
+            if (pointsDiscount.compareTo(afterPromo) > 0) {
+                throw new IllegalStateException("Số điểm quy đổi vượt quá giá trị đơn hàng");
+            }
+        }
+
+        order.setLoyaltyPointsUsed(points);
+        order.setDiscountAmount(promoDiscount.add(pointsDiscount));
         order.setTotalAmount(subtotal.subtract(order.getDiscountAmount()));
 
         Order saved = orderRepo.save(order);
+        if (code != null && !code.isBlank()) {
+            promotionService.markUsed(code);   // tăng lượt dùng mã
+        }
+
         saved.setOrderCode("BL"
         + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE)
         + String.format("%05d", saved.getId()));
@@ -146,9 +178,7 @@ public class ICheckoutService implements CheckoutService {
             if (stock < oi.getQuantity()) {
                 throw new IllegalStateException("Không đủ hàng: " + oi.getProductName());
             }
-            // TẠM để test: giữ 3 giây cho 2 request cùng đọc dữ liệu cũ. Test xong XÓA.
-            try { Thread.sleep(3000); } catch (InterruptedException ignored) {}
-
+        
             p.setStock(stock - oi.getQuantity());
             productRepo.saveAndFlush(p);  
         
@@ -163,6 +193,7 @@ public class ICheckoutService implements CheckoutService {
             inventoryLogRepo.save(log);
         }
 
+        loyaltyService.redeemPoints(orderId);
         OrderResponse res = orderService.updateStatus(orderId, Order.Status.PAID, null);
         closeCart(res.getCustomerId());
         return res;

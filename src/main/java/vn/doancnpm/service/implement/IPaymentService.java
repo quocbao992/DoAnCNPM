@@ -15,6 +15,8 @@ import vn.doancnpm.dto.Request.PaymentRequest;
 import vn.doancnpm.dto.Response.PaymentResponse;
 import vn.doancnpm.repository.OrderRepository;
 import vn.doancnpm.repository.PaymentRepository;
+import vn.doancnpm.service.CheckoutService;
+import vn.doancnpm.service.OrderService;
 import vn.doancnpm.service.PaymentService;
 
 @Service
@@ -36,8 +38,10 @@ public class IPaymentService implements PaymentService {
     );
 
     private final PaymentRepository paymentRepo;
-    private final OrderRepository orderRepo; // chỉ dùng để ĐỌC đơn hàng
- 
+    private final OrderRepository orderRepo;                // chỉ dùng để ĐỌC đơn hàng
+    private final CheckoutService checkoutService;          // gọi confirmOrder khi thanh toán thành công 
+    private final OrderService orderService;                // đánh dấu PAYMENT_FAILED 
+    
     @Override
     public PaymentResponse createPayment(PaymentRequest rq) {
         if (rq.getIdempotencyKey() == null || rq.getIdempotencyKey().isBlank()) {
@@ -61,8 +65,9 @@ public class IPaymentService implements PaymentService {
         Order order = orderRepo.findById(rq.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng"));
  
-        if (order.getStatus() != Order.Status.PENDING) {
-            throw new IllegalStateException("Chỉ thanh toán được đơn hàng đang PENDING");
+        if (order.getStatus() != Order.Status.PENDING
+                && order.getStatus() != Order.Status.PAYMENT_FAILED) {
+            throw new IllegalStateException("Chỉ thanh toán được đơn PENDING hoặc PAYMENT_FAILED");
         }
         if (paymentRepo.existsByOrderIdAndStatus(order.getId(), SUCCESS)) {
             throw new IllegalStateException("Đơn hàng đã được thanh toán");
@@ -87,25 +92,15 @@ public class IPaymentService implements PaymentService {
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy giao dịch thanh toán"));
  
         String current = payment.getStatus();
- 
-        // Callback gửi trùng cùng trạng thái thì không báo lỗi
-        
-        /*if (current.equals(newStatus)) {
-            return mapToPaymentResponse(payment);
-        }
-        if (!TRANSITIONS.getOrDefault(current, Set.of()).contains(newStatus)) {
-            throw new IllegalStateException("Không thể chuyển trạng thái " + current + " -> " + newStatus);
-        }*/
+        String target =(newStatus == null || newStatus.isBlank()) ? null : newStatus.trim().toUpperCase();
+        boolean changed = target != null && !current.equals(target);
 
-        if (newStatus != null && !current.equals(newStatus)) {
-            if (!TRANSITIONS.getOrDefault(current, Set.of()).contains(newStatus)) {
-                throw new IllegalStateException("Không thể chuyển trạng thái " + current + " -> " + newStatus);
+        if (changed) {
+            if (!TRANSITIONS.getOrDefault(current, Set.of()).contains(target)) {
+                throw new IllegalStateException("Không thể chuyển trạng thái " + current + " -> " + target);
             }
  
             payment.setStatus(newStatus);
-        /*if (transactionRef != null) {
-            payment.setTransactionRef(transactionRef);
-        }*/
             if (SUCCESS.equals(newStatus)) {
                 payment.setPaidAt(LocalDateTime.now());
             }
@@ -114,7 +109,18 @@ public class IPaymentService implements PaymentService {
         if (transactionRef != null && !transactionRef.isBlank()) {
             payment.setTransactionRef(transactionRef);
         }
-        paymentRepo.save(payment);
+        
+        Payment saved = paymentRepo.save(payment);
+
+        // Chỉ tác động sang Order khi trạng thái payment VỪA đổi (tránh trừ kho/điểm hai lần)
+        if (changed) {
+            Order order = saved.getOrder();
+            if (SUCCESS.equals(target)) {
+                checkoutService.confirmOrder(order.getId());   // -> PAID, trừ kho, trừ điểm, đóng giỏ
+            } else if (FAILED.equals(target) && order.getStatus() == Order.Status.PENDING) {
+                orderService.updateStatus(order.getId(), Order.Status.PAYMENT_FAILED, null);
+            }
+        }
         return mapToPaymentResponse(payment);
     }
  
