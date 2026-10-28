@@ -17,3 +17,4 @@ public class LoginResponse {
     private UserResponse user;
 
 }
+

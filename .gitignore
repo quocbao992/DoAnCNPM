@@ -4,3 +4,10 @@ target/
 *.iml
 *.log
 .env
+
+# Node / Frontend
+node_modules/
+**/node_modules/
+dist/
+frontend/dist/
+.DS_Store
