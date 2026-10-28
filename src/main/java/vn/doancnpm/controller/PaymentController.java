@@ -19,14 +19,14 @@ import vn.doancnpm.dto.Response.PaymentResponse;
 import vn.doancnpm.service.PaymentService;
  
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 
 public class PaymentController {
     private final PaymentService paymentService;
  
     // Tạo giao dịch thanh toán cho đơn hàng
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<PaymentResponse> createPayment(@Valid @RequestBody PaymentRequest rq) {
         return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.createPayment(rq));
     }
