@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { IconShield } from './Icons';
 
 export const Navbar = ({ currentTab, onNavigate }) => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
@@ -18,57 +19,30 @@ export const Navbar = ({ currentTab, onNavigate }) => {
           <span className="logo-badge">Coffee</span>
         </div>
 
-        <ul className="nav-links">
-          <li>
-            <button
-              className={`nav-link ${currentTab === 'home' ? 'active' : ''}`}
-              onClick={() => onNavigate('home')}
-            >
-              Trang chủ
-            </button>
-          </li>
-          <li>
-            <button
-              className={`nav-link ${currentTab === 'menu' ? 'active' : ''}`}
-              onClick={() => onNavigate('menu')}
-            >
-              Thực đơn
-            </button>
-          </li>
-          {isAuthenticated && (
-            <>
-              <li>
-                <button
-                  className={`nav-link ${currentTab === 'orders' ? 'active' : ''}`}
-                  onClick={() => onNavigate('orders')}
-                >
-                  Đơn hàng của tôi
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`nav-link ${currentTab === 'profile' ? 'active' : ''}`}
-                  onClick={() => onNavigate('profile')}
-                >
-                  Hồ sơ cá nhân
-                </button>
-              </li>
-            </>
-          )}
-          {isAdmin && (
-            <li>
-              <button
-                className={`nav-link ${currentTab === 'admin' ? 'active' : ''}`}
-                onClick={() => onNavigate('admin')}
-                style={{ color: 'var(--color-primary)' }}
-              >
-                Quản lý đơn hàng
-              </button>
-            </li>
-          )}
-        </ul>
-
         <div className="nav-actions">
+          {isAdmin && (
+            <button
+              className="btn btn-sm"
+              style={{
+                background: currentTab === 'admin' ? '#16a34a' : 'var(--color-surface, #ffffff)',
+                color: currentTab === 'admin' ? '#ffffff' : 'var(--color-text-main, #374151)',
+                fontWeight: 700,
+                borderRadius: '10px',
+                padding: '7px 14px',
+                border: '1px solid var(--color-border, #e2e8f0)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              }}
+              onClick={() => onNavigate('admin')}
+              title="Chuyển sang Bảng Quản Trị Hệ Thống"
+            >
+              <IconShield size={18} color={currentTab === 'admin' ? '#ffffff' : 'var(--color-text-main, #374151)'} />
+              <span>Quản trị Admin</span>
+            </button>
+          )}
+
           <button
             className="cart-btn"
             title="Xem giỏ hàng"
@@ -127,7 +101,6 @@ export const Navbar = ({ currentTab, onNavigate }) => {
               </button>
               <button
                 className="btn btn-secondary btn-sm"
-
                 onClick={() => {
                   logout();
                   onNavigate('home');
@@ -157,6 +130,5 @@ export const Navbar = ({ currentTab, onNavigate }) => {
     </nav>
   );
 };
-
 
 export default Navbar;

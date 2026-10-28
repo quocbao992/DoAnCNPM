@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
+import CustomerBottomDock from './components/common/CustomerBottomDock';
+import AdminLeftSidebar from './components/common/AdminLeftSidebar';
 import HomePage from './pages/HomePage';
 import MenuPage from './pages/MenuPage';
 import CartPage from './pages/CartPage';
@@ -10,15 +12,15 @@ import CheckoutPage from './pages/CheckoutPage';
 import OrderHistoryPage from './pages/OrderHistoryPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import AdminOrdersPage from './pages/AdminOrdersPage';
-
+import AdminPortalPage from './pages/AdminPortalPage';
 import ProfilePage from './pages/ProfilePage';
 import { authService } from './services/authService';
 
 const MainApp = () => {
   const [currentTab, setCurrentTab] = useState('home');
+  const [adminSubTab, setAdminSubTab] = useState('dashboard');
   const [authNotice, setAuthNotice] = useState('');
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
 
   const handleNavigate = (tab) => {
     const isLoggedIn = isAuthenticated || authService.isAuthenticated();
@@ -29,10 +31,37 @@ const MainApp = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+
+    if (tab === 'admin' && !isAdmin) {
+      setAuthNotice('Bạn cần đăng nhập tài khoản Quản trị viên (Admin) để truy cập.');
+      setCurrentTab('login');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     setAuthNotice('');
     setCurrentTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Nếu đang ở màn hình Quản trị Admin: Hiển thị thanh công cụ Admin bên trái từ trên xuống
+  if (currentTab === 'admin' && isAdmin) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
+        <AdminLeftSidebar
+          adminTab={adminSubTab}
+          onSelectTab={setAdminSubTab}
+          onNavigateToCustomer={() => handleNavigate('home')}
+        />
+        <div style={{ marginLeft: '76px', flex: 1, minHeight: '100vh', overflowY: 'auto' }}>
+          <AdminPortalPage
+            activeTab={adminSubTab}
+            onNavigate={handleNavigate}
+          />
+        </div>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     switch (currentTab) {
@@ -49,7 +78,12 @@ const MainApp = () => {
       case 'profile':
         return <ProfilePage onNavigate={handleNavigate} />;
       case 'admin':
-        return <AdminOrdersPage onNavigate={handleNavigate} />;
+        return (
+          <AdminPortalPage
+            activeTab={adminSubTab}
+            onNavigate={handleNavigate}
+          />
+        );
       case 'login':
         return <LoginPage onNavigate={handleNavigate} initialNotice={authNotice} />;
       case 'register':
@@ -62,8 +96,13 @@ const MainApp = () => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar currentTab={currentTab} onNavigate={handleNavigate} />
-      <main style={{ flex: 1 }}>{renderContent()}</main>
+      <main style={{ flex: 1 }} className="page-has-bottom-dock">
+        {renderContent()}
+      </main>
       <Footer />
+
+      {/* Thanh công cụ ở dưới cho người dùng dễ thao tác (Hình vuông bo góc theo Hình 2) */}
+      <CustomerBottomDock currentTab={currentTab} onNavigate={handleNavigate} />
     </div>
   );
 };

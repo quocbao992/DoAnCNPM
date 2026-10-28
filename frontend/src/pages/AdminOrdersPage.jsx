@@ -16,40 +16,12 @@ export const AdminOrdersPage = () => {
       setLoading(true);
       const res = await orderApi.getQueue();
       const list = Array.isArray(res) ? res : res?.data || res?.content || [];
-      if (list && list.length > 0) {
-        setOrders(list);
-        setLoading(false);
-        return;
-      }
-    } catch {}
-
-    setOrders([
-      {
-        id: 1,
-        orderCode: 'ORD-20261025-010',
-        status: 'PAID',
-        orderType: 'DINE_IN',
-        tableNumber: 'Bàn 02',
-        createdAt: new Date().toISOString(),
-        items: [
-          { id: 1, productName: 'Cà Phê Cốt Dừa Latte', quantity: 2, size: 'L' },
-          { id: 2, productName: 'Bạc Xỉu', quantity: 1, size: 'M' },
-        ],
-        totalAmount: 125000,
-      },
-      {
-        id: 2,
-        orderCode: 'ORD-20261025-011',
-        status: 'PREPARING',
-        orderType: 'TAKE_AWAY',
-        createdAt: new Date(Date.now() - 300000).toISOString(),
-        items: [
-          { id: 3, productName: 'Trà Đào Cam Sả Tươi Mát', quantity: 1, size: 'L' },
-        ],
-        totalAmount: 49000,
-      },
-    ]);
-    setLoading(false);
+      setOrders(list);
+    } catch {
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUpdateStatus = async (orderId, newStatus) => {
@@ -85,7 +57,6 @@ export const AdminOrdersPage = () => {
         <button className="btn btn-secondary btn-sm" onClick={loadQueue}>
           Tải lại danh sách
         </button>
-
       </div>
 
       {loading ? (
@@ -122,15 +93,15 @@ export const AdminOrdersPage = () => {
                     className="status-badge"
                     style={{ background: statusInfo.bg, color: statusInfo.color }}
                   >
-                    ● {statusInfo.label}
+                    {statusInfo.label}
                   </span>
                 </div>
 
                 <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
                   {order.orderType === 'DINE_IN'
-                    ? `📍 Tại bàn: ${order.tableNumber || 'Chưa chọn bàn'}`
-                    : '📦 Mang đi'}
-                  {' • '}
+                    ? `Tại bàn: ${order.tableNumber || 'Chưa chọn bàn'}`
+                    : 'Mang đi'}
+                  {' - '}
                   {formatService.formatDateTime(order.createdAt)}
                 </div>
 

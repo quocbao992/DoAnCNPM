@@ -1,0 +1,3 @@
+lam lai giao dien cua admin,cashier,barista
+giao dien cua customer 80% vẫn cần kiểm tra thêm sai sót
+thay vif hien toan bo chu tren thanh ngang cua customer thi thay bang icon tu ve + chu ngan gon cho dep
