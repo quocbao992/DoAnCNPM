@@ -17,7 +17,7 @@ import vn.doancnpm.domain.CartItem.Size;
 @Builder 
 public class CartItemRequest {
     @NotNull(message = "productID không được để trống")
-    private Long productID;
+    private Long productId;//
 
     @Min(value =1,message =" số lượng phải lớn hơn 0")
     private int quantity;
@@ -26,7 +26,7 @@ public class CartItemRequest {
     private Size size;
 
    // @NotNull(message = "customerID không được để trống")
-    private Long customerID;
+    private Long customerId;
     
     private List<CartItemToppingRequest> toppings;
 

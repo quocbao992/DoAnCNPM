@@ -3,12 +3,10 @@ package vn.doancnpm.service.implement;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
-import vn.doancnpm.domain.Inventory;
 import vn.doancnpm.domain.InventoryTopping;
 import vn.doancnpm.domain.Topping;
 import vn.doancnpm.dto.Request.ToppingRequest;
 import vn.doancnpm.dto.Response.ToppingResponse;
-import vn.doancnpm.repository.InventoryRepository;
 import vn.doancnpm.repository.InventoryToppingRepository;
 import vn.doancnpm.repository.ToppingRepository;
 import vn.doancnpm.service.ToppingService;
@@ -21,7 +19,6 @@ public class IToppingService implements ToppingService {
 
     private final ToppingRepository toppingRepository;
     private final InventoryToppingRepository inventoryToppingRepository;
-    private final InventoryRepository inventoryRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -58,29 +55,15 @@ public class IToppingService implements ToppingService {
                 .build();
         Topping savedTopping = toppingRepository.save(topping);
 
-        // 2. Lấy kho mặc định (Lấy kho đầu tiên trong DB, nếu chưa có kho nào thì tạo mới)
-        // LƯU Ý: Tuyệt đối KHÔNG gán .id(1L) vào builder để tránh lỗi 500 của Hibernate!
-        Inventory defaultInventory = inventoryRepository.findAll().stream()
-                .findFirst()
-                .orElseGet(() -> {
-                    Inventory newInv = Inventory.builder()
-                            .name("Kho Tổng")
-                            .location("Chi nhánh chính")
-                            .status(true)
-                            .build();
-                    return inventoryRepository.save(newInv);
-                });
-
-        // 3. Khởi tạo tồn kho ban đầu (stock = 0)
+        // 2. Khởi tạo tồn kho ban đầu (stock = 0)
         InventoryTopping initialStock = InventoryTopping.builder()
-                .inventory(defaultInventory)
                 .topping(savedTopping)
-                .stock(0) 
+                .stock(0)
                 .minThreshold(10)
                 .build();
         inventoryToppingRepository.save(initialStock);
 
-        // 4. Trả về Response DTO
+        // 3. Trả về Response DTO
         return mapToResponse(savedTopping, 0);
     }
 

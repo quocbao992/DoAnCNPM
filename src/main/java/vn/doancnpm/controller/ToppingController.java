@@ -8,8 +8,11 @@ import vn.doancnpm.dto.Request.ToppingRequest;
 import vn.doancnpm.dto.Response.ToppingResponse;
 import vn.doancnpm.service.ToppingService;
 
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
-
+import java.util.Map;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 @RestController
 @RequestMapping("/api/v1/toppings")
 @RequiredArgsConstructor
@@ -51,4 +54,14 @@ public class ToppingController {
             ToppingResponse updated = toppingService.updateStatus(id, status);
             return ResponseEntity.ok(updated);
         }
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleAllExceptions(Exception ex) {
+    ex.printStackTrace(); // In lỗi đỏ ra terminal IDE
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("timestamp", LocalDateTime.now());
+    body.put("status", 500);
+    body.put("error", "Internal Server Error");
+    body.put("message", ex.getMessage()); // Hiển thị nguyên nhân lỗi
+    return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+} 
 }

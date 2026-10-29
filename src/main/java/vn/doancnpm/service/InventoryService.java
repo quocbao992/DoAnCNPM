@@ -1,3 +1,4 @@
+/*
 package vn.doancnpm.service;
 
 import java.util.List;
@@ -20,4 +21,4 @@ public interface InventoryService {
     InventoryStockResponse getProductStock(Long productId);
     List<InventoryLogResponse> getToppingLogs(Long toppingId);
     List<InventoryLogResponse> getProductLogs(Long productId);
-}
+} */

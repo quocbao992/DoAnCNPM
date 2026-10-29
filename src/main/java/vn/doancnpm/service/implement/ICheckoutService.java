@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import vn.doancnpm.domain.Cart;
 import vn.doancnpm.domain.CartItem;
 import vn.doancnpm.domain.CartItemTopping;
-import vn.doancnpm.domain.InventoryLog;
 import vn.doancnpm.domain.Order;
 import vn.doancnpm.domain.OrderItem;
 import vn.doancnpm.domain.OrderItemTopping;
@@ -19,10 +18,7 @@ import vn.doancnpm.dto.Request.CheckoutRequest;
 import vn.doancnpm.dto.Response.OrderResponse;
 import vn.doancnpm.repository.CartItemRepository;
 import vn.doancnpm.repository.CartRepository;
-import vn.doancnpm.repository.InventoryLogRepository;
-//import vn.doancnpm.repository.InventoryLogRepository;
 import vn.doancnpm.repository.OrderRepository;
-import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.service.CheckoutService;
 import vn.doancnpm.service.OrderService;
 import vn.doancnpm.service.LoyaltyService;
@@ -30,8 +26,8 @@ import vn.doancnpm.service.PromotionService;
 import java.util.HashMap;
 import java.util.Map;
 import vn.doancnpm.domain.Product;
-//import vn.doancnpm.repository.ProductRepository;
-import vn.doancnpm.service.InventoryService;
+import vn.doancnpm.service.ProductInventoryService;
+import vn.doancnpm.service.ToppingInventoryService;
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -44,9 +40,8 @@ public class ICheckoutService implements CheckoutService {
     //mới
     //private final ProductRepository productRepo;cũ
     //private final InventoryLogRepository inventoryLogRepo;cũ
-    private final InventoryService inventoryService; //mới
-    private final ProductRepository productRepo;
-    private final InventoryLogRepository inventoryLogRepo;
+    private final ProductInventoryService productInventoryService;
+    private final ToppingInventoryService toppingInventoryService;
     private final LoyaltyService loyaltyService;
     private final PromotionService promotionService;
 
@@ -94,13 +89,13 @@ public class ICheckoutService implements CheckoutService {
             }
         }
         for (Map.Entry<Long, Integer> e : needProduct.entrySet()) {
-            if (!inventoryService.checkStockAvailable(e.getKey(), null, e.getValue())) {
+            if (!productInventoryService.checkStockAvailable(e.getKey(), e.getValue())) {
                 throw new IllegalStateException("Sản phẩm ID " + e.getKey()
                         + " không đủ hàng hoặc đã ngừng bán (cần " + e.getValue() + ")");
             }
         }
         for (Map.Entry<Long, Integer> e : needTopping.entrySet()) {
-            if (!inventoryService.checkStockAvailable(null, e.getKey(), e.getValue())) {
+            if (!toppingInventoryService.checkStockAvailable(e.getKey(), e.getValue())) {
                 throw new IllegalStateException("Topping ID " + e.getKey()
                         + " không đủ hàng hoặc đã ngừng bán (cần " + e.getValue() + ")");
             }
@@ -111,7 +106,6 @@ public class ICheckoutService implements CheckoutService {
         order.setStatus(Order.Status.PENDING);
         order.setOrderType(rq.getOrderType());
         order.setTableNumber(rq.getTableNumber());
-        order.setPaymentMethod(rq.getPaymentMethod());
         order.setNote(rq.getNote());
         
 
@@ -216,10 +210,10 @@ public class ICheckoutService implements CheckoutService {
         } cũ*/ 
         // mới
         for (OrderItem oi : order.getItems()) {
-            inventoryService.deductStock(oi.getProduct().getId(), null, order, oi.getQuantity());
+            productInventoryService.deductStock(oi.getProduct().getId(), order, oi.getQuantity());
             if (oi.getToppings() != null) {
                 for (OrderItemTopping ot : oi.getToppings()) {
-                    inventoryService.deductStock(null, ot.getTopping().getId(), order, ot.getQuantity());
+                    toppingInventoryService.deductStock(ot.getTopping().getId(), order, ot.getQuantity());
                 }
             }
         }//

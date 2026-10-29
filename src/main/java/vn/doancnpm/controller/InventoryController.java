@@ -1,4 +1,3 @@
-
 package vn.doancnpm.controller;
 
 import java.time.LocalDateTime;
@@ -7,129 +6,112 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import jakarta.persistence.EntityNotFoundException;
-
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import vn.doancnpm.dto.Request.StockUpdateRequest;
+import vn.doancnpm.dto.Request.ProductStockRequest;
+import vn.doancnpm.dto.Request.ToppingStockRequest;
 import vn.doancnpm.dto.Response.InventoryLogResponse;
 import vn.doancnpm.dto.Response.InventoryStockResponse;
-import vn.doancnpm.service.InventoryService;
+import vn.doancnpm.service.InventoryLogService;
+import vn.doancnpm.service.ProductInventoryService;
+import vn.doancnpm.service.ToppingInventoryService;
 
 @RestController
 @RequestMapping("/api/v1/inventory")
 @RequiredArgsConstructor
 public class InventoryController {
 
-    private final InventoryService inventoryService;
+    private final ProductInventoryService productInventoryService;
+    private final ToppingInventoryService toppingInventoryService;
+    private final InventoryLogService inventoryLogService;
 
-    //PHẦN TOPPING
+    // ======================== TOPPING ========================
 
-    // 1. Xem số lượng tồn kho hiện tại của Topping
     @GetMapping("/toppings/{toppingId}")
     public ResponseEntity<InventoryStockResponse> getToppingStock(@PathVariable Long toppingId) {
-        return ResponseEntity.ok(inventoryService.getToppingStock(toppingId));
-    }
-    //2. thêm topping
-    @PostMapping("/toppings/import")
-    public ResponseEntity<String> importTopping(@RequestBody StockUpdateRequest request) {
-        requireId(request.getToppingId(), "toppingId");
-        int amount = requireAmount(request);
-        String reason = (request.getReason() != null && !request.getReason().isEmpty())
-                        ? request.getReason() : "IMPORT";
-        inventoryService.addStock(null, request.getToppingId(), null, amount, reason);
-        return ResponseEntity.ok("Nhập kho Topping thành công! Số lượng nhập: " + amount);
-    }
-    //3.trừ topping
-    @PostMapping("/toppings/deduct")
-    public ResponseEntity<String> deductTopping(@RequestBody StockUpdateRequest request) {
-        requireId(request.getToppingId(), "toppingId");
-        int amount = requireAmount(request);
-        inventoryService.deductStock(null, request.getToppingId(), null, amount);
-        return ResponseEntity.ok("Trừ kho Topping thành công! Đã trừ: " + amount);
+        return ResponseEntity.ok(toppingInventoryService.getStock(toppingId));
     }
 
-    // 4. Xem lịch sử biến động kho của Topping
+    @PostMapping("/toppings/import")
+    public ResponseEntity<String> importTopping(@Valid @RequestBody ToppingStockRequest request) {
+        toppingInventoryService.addStock(request.getToppingId(), null, request.getAmount(),
+                reasonOrDefault(request.getReason()));
+        return ResponseEntity.ok("Nhập kho Topping thành công! Số lượng nhập: " + request.getAmount());
+    }
+
+    @PostMapping("/toppings/deduct")
+    public ResponseEntity<String> deductTopping(@Valid @RequestBody ToppingStockRequest request) {
+        toppingInventoryService.deductStock(request.getToppingId(), null, request.getAmount());
+        return ResponseEntity.ok("Trừ kho Topping thành công! Đã trừ: " + request.getAmount());
+    }
+
     @GetMapping("/logs/toppings/{toppingId}")
     public ResponseEntity<List<InventoryLogResponse>> getToppingLogs(@PathVariable Long toppingId) {
-        return ResponseEntity.ok(inventoryService.getToppingLogs(toppingId));
+        return ResponseEntity.ok(inventoryLogService.getToppingLogs(toppingId));
     }
 
-    // 5. Kiểm tra Topping còn đủ số lượng để bán không
     @GetMapping("/toppings/check")
     public ResponseEntity<Boolean> checkToppingStock(
-            @RequestParam ("productId") Long toppingId,
-            @RequestParam ("amount") int amount) {
-        if (amount <=0){
-            throw new IllegalArgumentException ("amout phải lớn hơn 0");
-        }
-        boolean available = inventoryService.checkStockAvailable(null, toppingId, amount);
-        return ResponseEntity.ok(available);
+            @RequestParam("toppingId") Long toppingId,
+            @RequestParam("amount") int amount) {
+        requirePositive(amount);
+        return ResponseEntity.ok(toppingInventoryService.checkStockAvailable(toppingId, amount));
     }
 
-    //PHẦN PRODUCT
+    // ======================== PRODUCT ========================
 
-    // 1 Xem tồn kho Product
     @GetMapping("/products/{productId}")
     public ResponseEntity<InventoryStockResponse> getProductStock(@PathVariable Long productId) {
-        return ResponseEntity.ok(inventoryService.getProductStock(productId));
+        return ResponseEntity.ok(productInventoryService.getStock(productId));
     }
-    // 2 Thêm product
+
     @PostMapping("/products/import")
-    public ResponseEntity<String> importProduct(@RequestBody StockUpdateRequest request) {
-        requireId(request.getProductId(), "productId");
-        int amount = requireAmount(request);
-        String reason = (request.getReason() != null && !request.getReason().isEmpty())
-                        ? request.getReason() : "IMPORT";
-        inventoryService.addStock(request.getProductId(), null, null, amount, reason);
-        return ResponseEntity.ok("Nhập kho Product thành công! Số lượng nhập: " + amount);
+    public ResponseEntity<String> importProduct(@Valid @RequestBody ProductStockRequest request) {
+        productInventoryService.addStock(request.getProductId(), null, request.getAmount(),
+                reasonOrDefault(request.getReason()));
+        return ResponseEntity.ok("Nhập kho Product thành công! Số lượng nhập: " + request.getAmount());
     }
 
-    //3 trừ kho product
     @PostMapping("/products/deduct")
-    public ResponseEntity<String> deductProduct(@RequestBody StockUpdateRequest request) {
-        requireId(request.getProductId(), "productId");
-        int amount = requireAmount(request);
-        inventoryService.deductStock(request.getProductId(), null, null, amount);
-        return ResponseEntity.ok("Trừ kho Product thành công! Đã trừ: " + amount);
+    public ResponseEntity<String> deductProduct(@Valid @RequestBody ProductStockRequest request) {
+        productInventoryService.deductStock(request.getProductId(), null, request.getAmount());
+        return ResponseEntity.ok("Trừ kho Product thành công! Đã trừ: " + request.getAmount());
     }
 
-    // 4 Xem lịch sử biến động kho của Product
     @GetMapping("/logs/products/{productId}")
     public ResponseEntity<List<InventoryLogResponse>> getProductLogs(@PathVariable Long productId) {
-        return ResponseEntity.ok(inventoryService.getProductLogs(productId));
-    }
-        // ======================== Hàm kiểm tra đầu vào ========================
-
-    private void requireId(Long id, String fieldName) {
-        if (id == null) {
-            throw new IllegalArgumentException(fieldName + " không được để trống");
-        }
+        return ResponseEntity.ok(inventoryLogService.getProductLogs(productId));
     }
 
-    private int requireAmount(StockUpdateRequest request) {
-        Integer amount = request.getAmount();
-        if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("amount phải lớn hơn 0");
-        }
-        return amount;
-    }
-    // 5 Kiểm tra Product còn đủ số lượng để bán không
     @GetMapping("/products/check")
     public ResponseEntity<Boolean> checkProductStock(
             @RequestParam("productId") Long productId,
             @RequestParam("amount") int amount) {
+        requirePositive(amount);
+        return ResponseEntity.ok(productInventoryService.checkStockAvailable(productId, amount));
+    }
+
+    // ======================== Hàm phụ ========================
+
+    private String reasonOrDefault(String reason) {
+        return (reason != null && !reason.isBlank()) ? reason : "IMPORT";
+    }
+
+    private void requirePositive(int amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("amount phải lớn hơn 0");
         }
-        boolean available = inventoryService.checkStockAvailable(productId, null, amount);
-        return ResponseEntity.ok(available);
     }
-        // ======================== Xử lý lỗi ========================
+
+    // ======================== Xử lý lỗi ========================
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(EntityNotFoundException ex) {
@@ -139,6 +121,16 @@ public class InventoryController {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // Lỗi từ @Valid trong ProductStockRequest / ToppingStockRequest
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> e.getDefaultMessage())
+                .findFirst()
+                .orElse("Dữ liệu không hợp lệ");
+        return buildError(HttpStatus.BAD_REQUEST, message);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

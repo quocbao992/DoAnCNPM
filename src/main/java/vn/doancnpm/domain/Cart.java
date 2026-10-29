@@ -41,7 +41,8 @@ public class Cart {
     private Customer customer;
 
     @Column(name = "status")
-    private Boolean status;
+    @Builder.Default
+    private Boolean status=true;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItem> items ;

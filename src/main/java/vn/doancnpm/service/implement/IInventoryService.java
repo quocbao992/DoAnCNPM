@@ -1,3 +1,4 @@
+/* 
 package vn.doancnpm.service.implement;
 
 import java.time.LocalDateTime;
@@ -86,7 +87,7 @@ public class IInventoryService implements InventoryService {
 
     @Override
     @Transactional
-    public void addStock(Long productId, Long toppingId, Order order, int addAmount, String reason) {
+    public void addStock(Long productId, Long toppingId, Order order, int addAmount, String reason) {// updateproductrequest rq
         if (addAmount <= 0) {
             throw new IllegalArgumentException("Số lượng thêm phải lớn hơn 0");
         }
@@ -129,7 +130,7 @@ public class IInventoryService implements InventoryService {
     }
 
     @Override
-    public boolean checkStockAvailable(Long productId, Long toppingId, int requiredAmount) {
+    public boolean checkStockAvailable(Long productId, Long toppingId, int requiredAmount) {//
 
         if (productId != null) {
             Product product = productRepository.findById(productId).orElse(null);
@@ -193,14 +194,14 @@ public class IInventoryService implements InventoryService {
         return inventoryLogRepository.findByToppingIdOrderByCreatedAtDesc(toppingId).stream()
                 .map(this::mapToLogResponse)
                 .collect(Collectors.toList());
-    }
+    }//
 
     @Override
     public List<InventoryLogResponse> getProductLogs(Long productId) {
         return inventoryLogRepository.findByProductIdOrderByCreatedAtDesc(productId).stream()
                 .map(this::mapToLogResponse)
                 .collect(Collectors.toList());
-    }
+    }//
 
     //Hàm nội bộ
 
@@ -251,4 +252,4 @@ public class IInventoryService implements InventoryService {
                 .createdAt(log.getCreatedAt())
                 .build();
     }
-}
+}*/

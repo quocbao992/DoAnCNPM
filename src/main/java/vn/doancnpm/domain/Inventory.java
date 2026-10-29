@@ -1,3 +1,4 @@
+/*
 package vn.doancnpm.domain;
 
 import jakarta.persistence.Column;
@@ -20,7 +21,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class Inventory {
-
+    // thêm danh sách product,topping
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -34,4 +35,4 @@ public class Inventory {
     @Column(name = "status", nullable = false)
     @Builder.Default
     private Boolean status = true;
-}
+} */
