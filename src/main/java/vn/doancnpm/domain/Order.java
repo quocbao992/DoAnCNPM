@@ -89,7 +89,7 @@ public class Order {
     }
 
     public enum OrderType { DINE_IN, TAKE_AWAY }
-    public enum PaymentMethod { VNPAY, MOMO, CASH }
+    //public enum PaymentMethod { VNPAY, MOMO, CASH }
 
     @Column(unique = true, length = 30)
     private String orderCode;
@@ -99,8 +99,8 @@ public class Order {
 
     private String tableNumber;
 
-    @Enumerated(EnumType.STRING)
-    private PaymentMethod paymentMethod;
+    //@Enumerated(EnumType.STRING)
+    //private Payment paymentMethod;
 
     @Column(length = 500)
     private String note;

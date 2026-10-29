@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.doancnpm.domain.Order;
+import vn.doancnpm.domain.Payment;
 
 @Getter
 @Setter
@@ -30,6 +31,5 @@ public class OrderResponse {
     private String orderCode;
     private Order.OrderType orderType;
     private String tableNumber;
-    private Order.PaymentMethod paymentMethod;
     private String note;
 }

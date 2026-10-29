@@ -1091,11 +1091,7 @@ button {
   background-color: #f8fafc;
 }
 
-/* ==========================================================================
-   TOOLBAR & DOCK NAVIGATION SYSTEM (DESIGN MATCHING IMAGE 2)
-   ========================================================================== */
 
-/* Nút hình vuông bo góc chuẩn nét hình 2 */
 .tool-square-btn {
   width: 48px;
   height: 48px;
@@ -1122,7 +1118,7 @@ button {
 }
 
 .tool-square-btn.active {
-  background: #16a34a; /* Xanh lá cây chuẩn như nút Download trong hình 2 */
+  background: #16a34a; 
   color: #ffffff !important;
   border-color: #16a34a;
   box-shadow: 0 6px 18px rgba(22, 163, 74, 0.4);
@@ -1133,7 +1129,6 @@ button {
   color: #ffffff !important;
 }
 
-/* Tooltip màu đen với mũi tên nhọn chuẩn hình 2 */
 .dock-tooltip {
   position: absolute;
   background: #18181b;
@@ -1152,7 +1147,6 @@ button {
   transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
 }
 
-/* Tooltip trỏ từ trên xuống nút (cho thanh công cụ dưới đáy) */
 .dock-tooltip-top {
   bottom: calc(100% + 12px);
   left: 50%;
@@ -1170,7 +1164,6 @@ button {
   border-color: #18181b transparent transparent transparent;
 }
 
-/* Tooltip trỏ sang bên phải nút (cho thanh sidebar bên trái của admin) */
 .dock-tooltip-right {
   left: calc(100% + 12px);
   top: 50%;
@@ -1200,7 +1193,6 @@ button {
   transform: translateY(-50%) translateX(0);
 }
 
-/* Badge số lượng sản phẩm trên giỏ hàng */
 .tool-badge {
   position: absolute;
   top: -4px;
@@ -1220,7 +1212,6 @@ button {
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
 }
 
-/* 1. THANH CÔNG CỤ DƯỚI ĐÁY CHO KHÁCH HÀNG (CUSTOMER BOTTOM DOCK) */
 .customer-bottom-dock {
   position: fixed;
   bottom: 24px;
@@ -1244,12 +1235,10 @@ button {
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
 }
 
-/* Khoảng đệm cho trang khi có thanh đáy */
 .page-has-bottom-dock {
   padding-bottom: 96px !important;
 }
 
-/* 2. THANH CÔNG CỤ ADMIN BÊN TRÁI TỪ TRÊN XUỐNG (ADMIN LEFT SIDEBAR) */
 .admin-left-sidebar {
   position: fixed;
   top: 0;
@@ -1308,7 +1297,6 @@ button {
   border-top: 1px solid #f1f5f9;
 }
 
-/* Điều chỉnh layout chính khi Admin Sidebar hiển thị */
 .admin-layout-wrapper {
   margin-left: 76px;
   min-height: 100vh;

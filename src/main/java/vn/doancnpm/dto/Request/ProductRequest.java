@@ -15,7 +15,8 @@ public class ProductRequest {
     }
 
     public ProductRequest(String name, Long categoryId, String imgURL,
-                          BigDecimal unitPrice, Integer stock, Boolean status) {
+                          BigDecimal unitPrice, Integer stock
+                          , Boolean status) {
         this.name = name;
         this.categoryId = categoryId;
         this.imgURL = imgURL;
@@ -55,7 +56,7 @@ public class ProductRequest {
     public void setUnitPrice(BigDecimal unitPrice) {
         this.unitPrice = unitPrice;
     }
-
+     
     public Integer getStock() {
         return stock;
     }

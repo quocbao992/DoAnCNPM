@@ -24,5 +24,5 @@ public interface OrderService {
     OrderResponse cancel(Long orderId, String reason);
 
     PageResponse<AdminOrderResponse> adminSearch(LocalDate fromDate, LocalDate toDate,
-            Order.Status status, Order.PaymentMethod paymentMethod, int page, int size);
+            Order.Status status, int page, int size);
 }

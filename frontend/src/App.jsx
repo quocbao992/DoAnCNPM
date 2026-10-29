@@ -44,7 +44,6 @@ const MainApp = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Nếu đang ở màn hình Quản trị Admin: Hiển thị thanh công cụ Admin bên trái từ trên xuống
   if (currentTab === 'admin' && isAdmin) {
     return (
       <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
