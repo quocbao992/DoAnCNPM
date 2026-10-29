@@ -14,12 +14,15 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 import vn.doancnpm.domain.Category;
+import vn.doancnpm.domain.InventoryProduct;
 import vn.doancnpm.domain.Product;
 import vn.doancnpm.dto.Request.ProductRequest;
 import vn.doancnpm.dto.Response.PageResponse;
 import vn.doancnpm.dto.Response.ProductResponse;
+import vn.doancnpm.repository.InventoryProductRepository;
 import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.service.CategoryService;
+import vn.doancnpm.service.ProductInventoryService;
 import vn.doancnpm.service.ProductService;
 
 @Service
@@ -34,8 +37,10 @@ public class IProductService implements ProductService {
     private static final int MAX_FEATURED_LIMIT = 50;
 
     private final ProductRepository productRepository;
-    private final CategoryService categoryService;
 
+    private final ProductInventoryService productInventoryService;
+
+    private final CategoryService categoryService;
     private ProductResponse convertToResponse(Product product) {
         Category category = product.getCategory();
         return new ProductResponse(
@@ -44,7 +49,8 @@ public class IProductService implements ProductService {
                 category.getName(),
                 product.getName(),
                 product.getImgURL(),
-                product.getStock(),
+                // Tồn kho thật nằm ở inventory_product, không đọc Product.stock nữa
+                productInventoryService.getAvailableStock(product.getId()),
                 product.getUnitPrice(),
                 product.isStatus());
     }
@@ -78,67 +84,65 @@ public class IProductService implements ProductService {
         }
         if (request.getName().trim().length() > MAX_NAME_LENGTH) {
             throw new IllegalArgumentException(
-                    "Tên sản phẩm không được dài quá " + MAX_NAME_LENGTH + " ký tự");
+                    "Tên sản phẩm không được vượt quá " + MAX_NAME_LENGTH + " ký tự");
         }
-        if (request.getCategoryId() == null) {
-            throw new IllegalArgumentException("Phải chọn danh mục cho sản phẩm");
-        }
-        validatePrice(request.getUnitPrice());
-        validateStock(request.getStock());
     }
 
     @Override
     @Transactional
     public ProductResponse create(ProductRequest request) {
         validate(request);
+        validatePrice(request.getUnitPrice());
+        validateStock(request.getStock());
+
         String name = request.getName().trim();
         String imgURL = request.getImgURL() != null ? request.getImgURL().trim() : null;
 
-        if (productRepository.existsByNameIgnoreCase(name)) {
-            throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
-        }
+        Product product = new Product();
+        product.setName(name);
+        product.setImgURL(imgURL);
+        product.setUnitPrice(request.getUnitPrice());
+        product.setStatus(request.getStatus() != null ? request.getStatus() : true);
+        product.setCategory(categoryService.getActiveEntityById(request.getCategoryId()));
 
-        Category category = categoryService.getActiveEntityById(request.getCategoryId());
+        Product saved = productRepository.save(product);
 
-        Product product = Product.builder()
-                .category(category)
-                .name(name)
-                .imgURL(imgURL)
-                .unitPrice(request.getUnitPrice())
-                .stock(request.getStock() != null ? request.getStock() : 0)
-                .status(request.getStatus() != null ? request.getStatus() : true)
-                .build();
-
-        return convertToResponse(productRepository.save(product));
+        // Tạo dòng tồn kho trong inventory_product (ghi log nếu có tồn đầu kỳ > 0)
+        
+        int initialStock = request.getStock() == null ? 0 : request.getStock();
+        productInventoryService.setStock(saved.getId(), initialStock, "INITIAL_STOCK");
+        return convertToResponse(saved);
     }
 
     @Override
     @Transactional
     public ProductResponse update(Long productId, ProductRequest request) {
-        Product product = findProductOrThrow(productId);
         validate(request);
+        validatePrice(request.getUnitPrice());
+        validateStock(request.getStock());
+
         String name = request.getName().trim();
         String imgURL = request.getImgURL() != null ? request.getImgURL().trim() : null;
+
+        Product product = findProductOrThrow(productId);
 
         if (productRepository.existsByNameIgnoreCaseAndIdNot(name, productId)) {
             throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
         }
 
-        if (!product.getCategory().getId().equals(request.getCategoryId())) {
-            product.setCategory(categoryService.getActiveEntityById(request.getCategoryId()));
-        }
-
         product.setName(name);
         product.setImgURL(imgURL);
         product.setUnitPrice(request.getUnitPrice());
+        product.setCategory(categoryService.getActiveEntityById(request.getCategoryId()));
+
+        Product saved = productRepository.save(product);
+
+        // Chỉ chỉnh tồn kho khi request có gửi stock
         if (request.getStock() != null) {
-            product.setStock(request.getStock());
-        }
-        if (request.getStatus() != null) {
-            product.setStatus(request.getStatus());
+            productInventoryService.setStock(productId, request.getStock(), "ADMIN_UPDATE");
         }
 
-        return convertToResponse(productRepository.save(product));
+        return convertToResponse(saved);
     }
 
     @Override
@@ -162,12 +166,9 @@ public class IProductService implements ProductService {
     @Transactional
     public ProductResponse updateStock(Long productId, int stock) {
         validateStock(stock);
-        // Khóa dòng sản phẩm: nếu đang có đơn trừ kho thì phải đợi đơn đó xong
-        Product product = productRepository.findByIdForUpdate(productId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Không tìm thấy sản phẩm với ID: " + productId));
-        product.setStock(stock);
-        return convertToResponse(productRepository.save(product));
+        Product product = findProductOrThrow(productId);
+        productInventoryService.setStock(productId, stock, "ADMIN_ADJUST");
+        return convertToResponse(product);
     }
 
     // Xóa mềm: chỉ ẩn sản phẩm, giữ lại dữ liệu để đơn hàng cũ vẫn tra được
@@ -208,7 +209,8 @@ public class IProductService implements ProductService {
         if (!categoryService.existsById(categoryId)) {
             throw new EntityNotFoundException("Không tìm thấy danh mục với ID: " + categoryId);
         }
-        Pageable all = PageRequest.of(0, Integer.MAX_VALUE, Sort.by("name").ascending());        return convertToResponses(
+        Pageable all = PageRequest.of(0, Integer.MAX_VALUE, Sort.by("name").ascending());
+        return convertToResponses(
                 productRepository.search(categoryId, null, status, all).getContent());
     }
 

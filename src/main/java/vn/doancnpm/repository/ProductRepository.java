@@ -9,10 +9,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.stereotype.Repository;
 import jakarta.persistence.LockModeType;
-import org.springframework.data.jpa.repository.Modifying;
+/*mp bỏ
+import org.springframework.data.jpa.repository.Modifying; */
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
 import vn.doancnpm.domain.Product;
 
 @Repository
@@ -20,7 +20,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByCategoryId(Long categoryId);
     List<Product> findByStatus(boolean status);
     List<Product> findByCategoryIdAndStatus(Long categoryId, boolean status);
-
     @Query("""
             select p from Product p
             where (:categoryId is null or p.category.id = :categoryId)
@@ -50,12 +49,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("select p from Product p where p.id = :id")
     Optional<Product> findByIdForUpdate(@Param("id") Long id);
 
+    /*mp bỏ 
     @Modifying(clearAutomatically = true)
     @Query("update Product p set p.stock = p.stock - :qty where p.id = :id and p.stock >= :qty")
     int deductStock(@Param("id") Long id, @Param("qty") int qty);
     @Modifying(clearAutomatically = true)
     @Query("update Product p set p.stock = p.stock + :qty where p.id = :id")
     int restoreStock(@Param("id") Long id, @Param("qty") int qty);
+    */
 }
 
 
