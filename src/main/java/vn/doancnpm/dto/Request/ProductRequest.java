@@ -16,7 +16,7 @@ public class ProductRequest {
     }
 
     public ProductRequest(String name, Long categoryId, String imgURL,
-                          BigDecimal unitPrice, Boolean status, Integer stock, Long version) {
+                      BigDecimal unitPrice, Boolean status, Integer stock, Long version) {
         this.name = name;
         this.categoryId = categoryId;
         this.imgURL = imgURL;

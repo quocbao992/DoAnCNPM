@@ -50,6 +50,10 @@ public class Product {
     @Column(name = "img_URL")
     private String imgURL;
 
+    /* MP bỏ stock cũ
+    @Column(name = "stock", nullable = false)
+    private Integer stock;
+    */
 
     @Column (name = "unit_price",nullable = false)
     private BigDecimal unitPrice;
@@ -66,9 +70,10 @@ public class Product {
     @Builder.Default
     private List<Topping> availableTopping = new ArrayList<>();
 
-    @Builder.Default
-    @Column(name = "stock", nullable = false)
-    private Integer stock = 0;
+    //MAI PHUONG BO
+    //@Builder.Default
+    //@Column(name = "stock", nullable = false)
+    //private Integer stock = 0;
 
     @Version
     private Long version;
