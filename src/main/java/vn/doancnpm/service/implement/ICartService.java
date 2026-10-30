@@ -43,13 +43,13 @@ public class ICartService implements CartService {
 
     @Override
     public CartResponse addToCart(CartRequest rq) {
-        Customer customer = customerRepo.findById(rq.getCustomerID())
+        Customer customer = customerRepo.findById(rq.getCustomerId())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng"));
 
         Cart cart = cartRepo.findByCustomerId(customer.getId())
                 .orElseGet(() -> cartRepo.save(Cart.builder().customer(customer).build()));
 
-        Product product = productRepo.findById(rq.getItem().getProductID())
+        Product product = productRepo.findById(rq.getItem().getProductId())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm"));
 
         CartItem incomingItem = maptoCartItem(rq);
@@ -207,7 +207,7 @@ public class ICartService implements CartService {
 
         if (item.getToppings() != null && !item.getToppings().isEmpty()) {
             toppingTotal = item.getToppings().stream()
-                    .map(cit -> cit.getPrice().multiply(BigDecimal.valueOf(cit.getQuantity())))
+                    .map(cit -> cit.getPrice().multiply(BigDecimal.valueOf(cit.getQuantity()*item.getQuantity())))
                     .filter(Objects::nonNull)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 

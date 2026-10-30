@@ -18,7 +18,7 @@ import lombok.Setter;
 @Setter 
 public class CartRequest {
      
-    private Long customerID;
+    private Long customerId;
 
     @Builder.Default
     @Column(name = "status")
