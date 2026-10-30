@@ -31,6 +31,6 @@ public class CheckoutRequest {
     @Size(max = 500)
     private String note;
 
-    @NotNull
-    private Order.PaymentMethod paymentMethod;
+    //@NotNull
+    //private Order.PaymentMethod paymentMethod;
 }

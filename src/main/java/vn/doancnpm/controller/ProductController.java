@@ -142,7 +142,6 @@ public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentType
         body.put("message", message);
         return new ResponseEntity<>(body, status);
     }
-    //MAI PHUONG THEM
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleAllExceptions(Exception ex) {
         ex.printStackTrace(); // In toàn bộ stack trace đỏ vào Terminal của IDE

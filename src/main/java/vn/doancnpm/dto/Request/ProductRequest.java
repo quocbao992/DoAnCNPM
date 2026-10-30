@@ -8,19 +8,21 @@ public class ProductRequest {
     private Long categoryId;
     private String imgURL;
     private BigDecimal unitPrice;
-    private Boolean status;    
+    private Boolean status; 
+    private Integer stock; 
     private Long version;
 
     public ProductRequest() {
     }
 
     public ProductRequest(String name, Long categoryId, String imgURL,
-                          BigDecimal unitPrice, Boolean status, Long version) {
+                          BigDecimal unitPrice, Boolean status, Integer stock, Long version) {
         this.name = name;
         this.categoryId = categoryId;
         this.imgURL = imgURL;
         this.unitPrice = unitPrice;
         this.status = status;
+        this.stock = stock;
         this.version = version;
     }
 
@@ -62,6 +64,14 @@ public class ProductRequest {
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public Integer getStock() {
+        return stock;
+    }
+
+    public void setStock(Integer stock) {
+        this.stock = stock;
     }
 
     public Long getVersion(){

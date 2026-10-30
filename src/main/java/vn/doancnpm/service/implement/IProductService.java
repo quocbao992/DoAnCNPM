@@ -21,6 +21,7 @@ import vn.doancnpm.dto.Response.PageResponse;
 import vn.doancnpm.dto.Response.ProductResponse;
 import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.service.CategoryService;
+import vn.doancnpm.service.ProductInventoryService;
 import vn.doancnpm.service.ProductService;
 
 @Service
@@ -29,12 +30,15 @@ import vn.doancnpm.service.ProductService;
 public class IProductService implements ProductService {
 
     private static final int MAX_NAME_LENGTH = 255;
+    private static final int MAX_IMG_URL_LENGTH = 255;
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 100;
     private static final int DEFAULT_FEATURED_LIMIT = 6;
     private static final int MAX_FEATURED_LIMIT = 50;
+    private static final BigDecimal MAX_PRICE = new BigDecimal("1000000000");
 
     private final ProductRepository productRepository;
+    private final ProductInventoryService productInventoryService;
     private final CategoryService categoryService;
 
     private ProductResponse convertToResponse(Product product) {
@@ -45,7 +49,8 @@ public class IProductService implements ProductService {
                 category.getName(),
                 product.getName(),
                 product.getImgURL(),
-                product.getStock(),
+                // Tồn kho thật nằm ở inventory_product, không đọc Product.stock nữa
+                productInventoryService.getAvailableStock(product.getId()),
                 product.getUnitPrice(),
                 product.isStatus(),
                 product.getVersion());
@@ -61,7 +66,6 @@ public class IProductService implements ProductService {
                         "Không tìm thấy sản phẩm với ID: " + productId));
     }
 
-    private static final BigDecimal MAX_PRICE = new BigDecimal("1000000000");
     private BigDecimal validatePrice(BigDecimal price) {
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Giá sản phẩm phải lớn hơn 0");
@@ -74,6 +78,7 @@ public class IProductService implements ProductService {
         }
         return price;
     }
+
     private String validateName(String rawName) {
         if (rawName == null || rawName.trim().isEmpty()) {
             throw new IllegalArgumentException("Tên sản phẩm không được để trống");
@@ -91,48 +96,49 @@ public class IProductService implements ProductService {
             return null;
         }
         String url = rawUrl.trim();
-        if (url.length() > 255) {
-            throw new IllegalArgumentException("Đường dẫn ảnh không được dài quá 255 ký tự");
+        if (url.length() > MAX_IMG_URL_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Đường dẫn ảnh không được dài quá " + MAX_IMG_URL_LENGTH + " ký tự");
         }
         return url.isEmpty() ? null : url;
     }
 
-    private void validate(ProductRequest request) {
-        if (request.getName() == null || request.getName().trim().isEmpty()) {
-            throw new IllegalArgumentException("Tên sản phẩm không được để trống");
+    // stock = null nghĩa là "không gửi lên" nên được phép
+    private void validateStock(Integer stock) {
+        if (stock != null && stock < 0) {
+            throw new IllegalArgumentException("Số lượng tồn kho không được âm");
         }
-        if (request.getName().trim().length() > MAX_NAME_LENGTH) {
-            throw new IllegalArgumentException(
-                    "Tên sản phẩm không được dài quá " + MAX_NAME_LENGTH + " ký tự");
-        }
-        if (request.getCategoryId() == null) {
-            throw new IllegalArgumentException("Phải chọn danh mục cho sản phẩm");
-        }
-        validatePrice(request.getUnitPrice());
     }
 
     @Override
     @Transactional
     public ProductResponse create(ProductRequest request) {
-        validate(request);
-        String name = request.getName().trim();
+        String name = validateName(request.getName());
+        if (request.getCategoryId() == null) {
+            throw new IllegalArgumentException("Phải chọn danh mục cho sản phẩm");
+        }
+        BigDecimal price = validatePrice(request.getUnitPrice());
+        //validateStock(request.getStock());
         String imgURL = validateImgUrl(request.getImgURL());
+
         if (productRepository.existsByNameIgnoreCase(name)) {
             throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
         }
 
-        Category category = categoryService.getActiveEntityById(request.getCategoryId());
+        Product product = new Product();
+        product.setName(name);
+        product.setImgURL(imgURL);
+        product.setUnitPrice(price);
+        product.setStatus(request.getStatus() != null ? request.getStatus() : true);
+        product.setCategory(categoryService.getActiveEntityById(request.getCategoryId()));
 
-        Product product = Product.builder()
-                .category(category)
-                .name(name)
-                .imgURL(imgURL)
-                .unitPrice(request.getUnitPrice())
-                .stock(0)
-                .status(request.getStatus() != null ? request.getStatus() : true)
-                .build();
+        Product saved = productRepository.save(product);
 
-        return convertToResponse(productRepository.save(product));
+        // Tạo dòng tồn kho trong inventory_product (ghi log nếu có tồn đầu kỳ > 0)
+        int initialStock = request.getStock() == null ? 0 : request.getStock();
+        productInventoryService.setStock(saved.getId(), initialStock, "INITIAL_STOCK");
+
+        return convertToResponse(saved);
     }
 
     @Override
@@ -170,7 +176,16 @@ public class IProductService implements ProductService {
             product.setStatus(request.getStatus());
         }
 
-        return convertToResponse(productRepository.save(product));
+        validateStock(request.getStock());
+
+        Product saved = productRepository.save(product);
+
+        // Chỉ chỉnh tồn kho khi request có gửi stock
+        if (request.getStock() != null) {
+            productInventoryService.setStock(productId, request.getStock(), "ADMIN_UPDATE");
+        }
+
+        return convertToResponse(saved);
     }
 
     @Override
@@ -190,6 +205,15 @@ public class IProductService implements ProductService {
         return convertToResponse(productRepository.save(product));
     }
 
+    @Override
+    @Transactional
+    public ProductResponse updateStock(Long productId, int stock) {
+        validateStock(stock);
+        Product product = findProductOrThrow(productId);
+        productInventoryService.setStock(productId, stock, "ADMIN_ADJUST");
+        return convertToResponse(product);
+    }
+
     // Xóa mềm: chỉ ẩn sản phẩm, giữ lại dữ liệu để đơn hàng cũ vẫn tra được
     @Override
     @Transactional
@@ -198,6 +222,8 @@ public class IProductService implements ProductService {
         product.setStatus(false);
         productRepository.save(product);
     }
+
+    // ===================== Query =====================
 
     @Override
     public ProductResponse getById(Long productId) {
@@ -211,7 +237,7 @@ public class IProductService implements ProductService {
         int safeSize = (size <= 0) ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("id").ascending());
 
-                String key = (keyword == null || keyword.trim().isEmpty())
+        String key = (keyword == null || keyword.trim().isEmpty())
                 ? null
                 : keyword.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
 
@@ -230,7 +256,8 @@ public class IProductService implements ProductService {
         if (!categoryService.existsById(categoryId)) {
             throw new EntityNotFoundException("Không tìm thấy danh mục với ID: " + categoryId);
         }
-        Pageable all = PageRequest.of(0, Integer.MAX_VALUE, Sort.by("name").ascending());        return convertToResponses(
+        Pageable all = PageRequest.of(0, Integer.MAX_VALUE, Sort.by("name").ascending());
+        return convertToResponses(
                 productRepository.search(categoryId, null, status, all).getContent());
     }
 

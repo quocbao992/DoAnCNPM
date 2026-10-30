@@ -50,6 +50,7 @@ public class Product {
     @Column(name = "img_URL")
     private String imgURL;
 
+
     @Column (name = "unit_price",nullable = false)
     private BigDecimal unitPrice;
     
