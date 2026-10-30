@@ -21,8 +21,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;// khi chạy update chỉ ghi các cột thực sự thay đổi không đè stock
+
 
 @Entity 
+@DynamicInsert
 @Table(name = "product")
 @AllArgsConstructor 
 @NoArgsConstructor 

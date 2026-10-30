@@ -96,12 +96,6 @@ public class ProductController {
         return ResponseEntity.ok(productService.updateStatus(id, status));
     }
 
-    //@PatchMapping("/{id}/stock")
-    //public ResponseEntity<ProductResponse> updateStock(@PathVariable Long id,
-    //                                                   @RequestParam int stock) {
-    //    return ResponseEntity.ok(productService.updateStock(id, stock));
-    //}
-
     // Xóa (xóa mềm)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> delete(@PathVariable Long id) {
@@ -147,5 +141,11 @@ public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentType
         body.put("error", status.getReasonPhrase());
         body.put("message", message);
         return new ResponseEntity<>(body, status);
+    }
+    //MAI PHUONG THEM
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleAllExceptions(Exception ex) {
+        ex.printStackTrace(); // In toàn bộ stack trace đỏ vào Terminal của IDE
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
     }
 }

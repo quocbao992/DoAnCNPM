@@ -61,11 +61,40 @@ public class IProductService implements ProductService {
                         "Không tìm thấy sản phẩm với ID: " + productId));
     }
 
+    private static final BigDecimal MAX_PRICE = new BigDecimal("1000000000");
     private BigDecimal validatePrice(BigDecimal price) {
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Giá sản phẩm phải lớn hơn 0");
         }
+        if (price.stripTrailingZeros().scale() > 2) {
+            throw new IllegalArgumentException("Giá sản phẩm chỉ được có tối đa 2 chữ số thập phân");
+        }
+        if (price.compareTo(MAX_PRICE) > 0) {
+            throw new IllegalArgumentException("Giá sản phẩm không được vượt quá 1.000.000.000");
+        }
         return price;
+    }
+    private String validateName(String rawName) {
+        if (rawName == null || rawName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên sản phẩm không được để trống");
+        }
+        String name = rawName.trim();
+        if (name.length() > MAX_NAME_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Tên sản phẩm không được dài quá " + MAX_NAME_LENGTH + " ký tự");
+        }
+        return name;
+    }
+
+    private String validateImgUrl(String rawUrl) {
+        if (rawUrl == null) {
+            return null;
+        }
+        String url = rawUrl.trim();
+        if (url.length() > 255) {
+            throw new IllegalArgumentException("Đường dẫn ảnh không được dài quá 255 ký tự");
+        }
+        return url.isEmpty() ? null : url;
     }
 
     private void validate(ProductRequest request) {
@@ -87,8 +116,7 @@ public class IProductService implements ProductService {
     public ProductResponse create(ProductRequest request) {
         validate(request);
         String name = request.getName().trim();
-        String imgURL = request.getImgURL() != null ? request.getImgURL().trim() : null;
-
+        String imgURL = validateImgUrl(request.getImgURL());
         if (productRepository.existsByNameIgnoreCase(name)) {
             throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
         }
@@ -111,25 +139,33 @@ public class IProductService implements ProductService {
     @Transactional
     public ProductResponse update(Long productId, ProductRequest request) {
         Product product = findProductOrThrow(productId);
-        validate(request);
-        if(request.getVersion() != null && !request.getVersion().equals(product.getVersion())){
+
+        if (request.getVersion() != null && !request.getVersion().equals(product.getVersion())) {
             throw new ObjectOptimisticLockingFailureException(Product.class, productId);
         }
 
-        String name = request.getName().trim();
-        String imgURL = request.getImgURL() != null ? request.getImgURL().trim() : null;
-
-        if (productRepository.existsByNameIgnoreCaseAndIdNot(name, productId)) {
-            throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
+        // Chỉ sửa field nào có gửi lên (khác null)
+        if (request.getName() != null) {
+            String name = validateName(request.getName());
+            if (productRepository.existsByNameIgnoreCaseAndIdNot(name, productId)) {
+                throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
+            }
+            product.setName(name);
         }
 
-        if (!product.getCategory().getId().equals(request.getCategoryId())) {
+        if (request.getCategoryId() != null
+                && !product.getCategory().getId().equals(request.getCategoryId())) {
             product.setCategory(categoryService.getActiveEntityById(request.getCategoryId()));
         }
 
-        product.setName(name);
-        product.setImgURL(imgURL);
-        product.setUnitPrice(request.getUnitPrice());
+        if (request.getUnitPrice() != null) {
+            product.setUnitPrice(validatePrice(request.getUnitPrice()));
+        }
+
+        if (request.getImgURL() != null) {
+            product.setImgURL(validateImgUrl(request.getImgURL()));
+        }
+
         if (request.getStatus() != null) {
             product.setStatus(request.getStatus());
         }
@@ -175,7 +211,9 @@ public class IProductService implements ProductService {
         int safeSize = (size <= 0) ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("id").ascending());
 
-        String key = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
+                String key = (keyword == null || keyword.trim().isEmpty())
+                ? null
+                : keyword.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
 
         Page<Product> result = productRepository.search(categoryId, key, status, pageable);
 
