@@ -27,10 +27,9 @@ public class AdminOrderController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false) Order.Status status,
-            @RequestParam(required = false) Order.PaymentMethod paymentMethod,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(
-                orderService.adminSearch(fromDate, toDate, status, paymentMethod, page, size));
+                orderService.adminSearch(fromDate, toDate, status,page, size));
     }
 }

@@ -50,6 +50,10 @@ public class Product {
     @Column(name = "img_URL")
     private String imgURL;
 
+    /*mp bỏ 
+    @Column(name ="stock",nullable = false)
+    private Integer stock;*/
+
     @Column (name = "unit_price",nullable = false)
     private BigDecimal unitPrice;
     
