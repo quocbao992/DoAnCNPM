@@ -111,17 +111,18 @@ public class ICheckoutService implements CheckoutService {
                             ct.getPrice().multiply(BigDecimal.valueOf(ct.getQuantity())));
                 }
             }
-/* 
-            // lineTotal = (giá món + topping của 1 ly) x số lượng
+
+            //lineTotal = (giá món + topping của 1 ly) x số lượng
             oi.setLineTotal(ci.getUnitPrice().add(toppingPerUnit)
-                    .multiply(BigDecimal.valueOf(ci.getQuantity()))); */
+                    .multiply(BigDecimal.valueOf(ci.getQuantity()))); 
             // (Giá món * số lượng ly) + Tổng tiền topping cố định
-            BigDecimal baseTotal = ci.getUnitPrice().multiply(BigDecimal.valueOf(ci.getQuantity()));
-            oi.setLineTotal(baseTotal.add(toppingPerUnit)); 
+            //BigDecimal baseTotal = ci.getUnitPrice().multiply(BigDecimal.valueOf(ci.getQuantity()));
+            //oi.setLineTotal(baseTotal.add(toppingPerUnit)); 
 
 
             order.getItems().add(oi);
             subtotal = subtotal.add(oi.getLineTotal());
+
         }
 
         order.setSubtotal(subtotal);
@@ -165,6 +166,14 @@ public class ICheckoutService implements CheckoutService {
     public OrderResponse confirmOrder(Long orderId) {
         Order order = orderRepo.findById(orderId)
             .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn " + orderId));
+
+        if (order.getStatus() == Order.Status.PAID) {
+            return orderService.getById(orderId);   // đã xác nhận rồi: không trừ kho/điểm lần nữa
+        }
+        if (order.getStatus() != Order.Status.PENDING
+                && order.getStatus() != Order.Status.PAYMENT_FAILED) {
+            throw new IllegalStateException("Đơn không ở trạng thái có thể xác nhận thanh toán");
+        }
 
         for (OrderItem oi : order.getItems()) {
             // 1. Trừ tồn kho

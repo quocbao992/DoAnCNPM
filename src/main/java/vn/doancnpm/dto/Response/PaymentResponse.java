@@ -24,4 +24,6 @@ public class PaymentResponse {
     private String transactionRef;
     private LocalDateTime paidAt;
     private LocalDateTime createdAt;
+    private String paymentUrl;    //chỉ có khi vừa yêu cầu thanh toán
+    private String qrCodeUrl;     //UI vẽ mã QR từ chuỗi này 
 }
