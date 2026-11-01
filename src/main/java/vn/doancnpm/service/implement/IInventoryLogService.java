@@ -1,3 +1,4 @@
+/* 
 package vn.doancnpm.service.implement;
 
 import java.time.LocalDateTime;
@@ -81,4 +82,98 @@ public class IInventoryLogService implements InventoryLogService {
                 .build();
     }
     
+}*/
+
+package vn.doancnpm.service.implement;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
+
+import vn.doancnpm.domain.Order;
+import vn.doancnpm.domain.Product;
+import vn.doancnpm.domain.ProductLog;
+import vn.doancnpm.domain.Topping;
+import vn.doancnpm.domain.ToppingLog;
+import vn.doancnpm.dto.Response.InventoryLogResponse;
+import vn.doancnpm.repository.ProductLogRepository;
+import vn.doancnpm.repository.ToppingLogRepository;
+import vn.doancnpm.service.InventoryLogService;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class IInventoryLogService implements InventoryLogService {
+
+    private final ProductLogRepository productLogRepository;
+    private final ToppingLogRepository toppingLogRepository;
+
+    // Propagation mặc định (REQUIRED): log chạy CHUNG transaction với việc đổi tồn kho.
+    // => nếu trừ kho bị rollback thì log cũng rollback, không bị lệch dữ liệu.
+    @Override
+    @Transactional
+    public void logProductChange(Product product, Order order, int quantityChange, String changeType) {
+        ProductLog log = ProductLog.builder()
+                .product(product)
+                .order(order)
+                .quantityChange(quantityChange)
+                .changeType(changeType)
+                .createdAt(LocalDateTime.now())
+                .build();
+        productLogRepository.save(log);
+    }
+
+    @Override
+    @Transactional
+    public void logToppingChange(Topping topping, Order order, int quantityChange, String changeType) {
+        ToppingLog log = ToppingLog.builder()
+                .topping(topping)
+                .order(order)
+                .quantityChange(quantityChange)
+                .changeType(changeType)
+                .createdAt(LocalDateTime.now())
+                .build();
+        toppingLogRepository.save(log);
+    }
+
+    @Override
+    public List<InventoryLogResponse> getProductLogs(Long productId) {
+        return productLogRepository.findByIdOrderByCreatedAtDesc(productId).stream()
+                .map(this::mapProductLog)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<InventoryLogResponse> getToppingLogs(Long toppingId) {
+        return toppingLogRepository.findByIdOrderByCreatedAtDesc(toppingId).stream()
+                .map(this::mapToppingLog)
+                .collect(Collectors.toList());
+    }
+
+    private InventoryLogResponse mapProductLog(ProductLog log) {
+        return InventoryLogResponse.builder()
+                .id(log.getId())
+                .productId(log.getProduct().getId())
+                .productName(log.getProduct().getName())
+                .quantityChange(log.getQuantityChange())
+                .changeType(log.getChangeType())
+                .createdAt(log.getCreatedAt())
+                .build();
+    }
+
+    private InventoryLogResponse mapToppingLog(ToppingLog log) {
+        return InventoryLogResponse.builder()
+                .id(log.getId())
+                .toppingId(log.getTopping().getId())
+                .toppingName(log.getTopping().getName())
+                .quantityChange(log.getQuantityChange())
+                .changeType(log.getChangeType())
+                .createdAt(log.getCreatedAt())
+                .build();
+    }
 }
