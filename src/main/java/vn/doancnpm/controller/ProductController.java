@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -95,12 +96,6 @@ public class ProductController {
         return ResponseEntity.ok(productService.updateStatus(id, status));
     }
 
-    @PatchMapping("/{id}/stock")
-    public ResponseEntity<ProductResponse> updateStock(@PathVariable Long id,
-                                                       @RequestParam int stock) {
-        return ResponseEntity.ok(productService.updateStock(id, stock));
-    }
-
     // Xóa (xóa mềm)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> delete(@PathVariable Long id) {
@@ -134,6 +129,11 @@ public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentType
         return buildError(HttpStatus.BAD_REQUEST, "Body JSON không hợp lệ");
     }
 
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+        public ResponseEntity<Map<String, Object>> handleConflict(ObjectOptimisticLockingFailureException ex){
+            return buildError(HttpStatus.CONFLICT, "Sản phẩm vừa được người khác cập nhật, vui lòng tải lại và thử lại");
+        }
+
     private ResponseEntity<Map<String, Object>> buildError(HttpStatus status, String message) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
@@ -142,9 +142,10 @@ public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentType
         body.put("message", message);
         return new ResponseEntity<>(body, status);
     }
-    @ExceptionHandler(Exception.class)
-public ResponseEntity<Map<String, Object>> handleAllExceptions(Exception ex) {
-    ex.printStackTrace(); // In toàn bộ stack trace đỏ vào Terminal của IDE
-    return buildError(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
-}
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<Map<String, Object>> handleAllExceptions(Exception ex) {
+        ex.printStackTrace(); // In toàn bộ stack trace đỏ vào Terminal của IDE
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+    }
+    
 }
