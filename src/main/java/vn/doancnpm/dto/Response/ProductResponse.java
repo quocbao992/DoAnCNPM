@@ -12,13 +12,14 @@ public class ProductResponse {
     private Integer stock;
     private BigDecimal unitPrice;
     private boolean status;
+    private Long version;
 
     public ProductResponse() {
     }
 
     public ProductResponse(Long id, Long categoryId, String categoryName, String name,
                            String imgURL, 
-                           Integer stock, BigDecimal unitPrice, boolean status) {
+                           Integer stock, BigDecimal unitPrice, boolean status, Long version) {
         this.id = id;
         this.categoryId = categoryId;
         this.categoryName = categoryName;
@@ -27,6 +28,7 @@ public class ProductResponse {
         this.stock = stock;
         this.unitPrice = unitPrice;
         this.status = status;
+        this.version = version;
     }
 
     public Long getId() {
@@ -91,5 +93,13 @@ public class ProductResponse {
 
     public void setStatus(boolean status) {
         this.status = status;
+    }
+
+    public Long getVersion(){
+        return version;
+    }
+
+    public void setVersion(Long version){
+        this.version = version;
     }
 }

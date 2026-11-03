@@ -5,8 +5,9 @@ import vn.doancnpm.domain.InventoryLog;
 import java.util.List;
 @Repository
 public interface InventoryLogRepository extends JpaRepository<InventoryLog, Long> {
+    /* 
     List<InventoryLog> findByProductId(Long productId);
     List<InventoryLog> findByToppingId(Long toppingId);
     List<InventoryLog> findByProductIdOrderByCreatedAtDesc(Long productId);
-    List<InventoryLog> findByToppingIdOrderByCreatedAtDesc(Long toppingId);
+    List<InventoryLog> findByToppingIdOrderByCreatedAtDesc(Long toppingId);*/
 }

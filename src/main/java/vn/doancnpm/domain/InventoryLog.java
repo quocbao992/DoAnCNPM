@@ -10,36 +10,28 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import lombok.AllArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Getter
-@Setter
-@Builder
+@Inheritance(strategy = InheritanceType.JOINED)
+@Getter @Setter
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InventoryLog {
+public abstract class InventoryLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "Id")
+    @Column(name = "Id_m")
     private Long id;
 
-    // Cho phép null vì có thể dòng log này chỉ dành cho Topping
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "Id_P", nullable = true)
-    private Product product;
-
-    // Cho phép null vì có thể dòng log này chỉ dành cho Product
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "Id_T", nullable = true)
-    private Topping topping;
-
-    // Cho phép null khi nhập/xuất kho thủ công (không thông qua đơn hàng)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "Id_O", nullable = true)
     private Order order;
@@ -54,3 +46,4 @@ public class InventoryLog {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }
+

@@ -14,6 +14,7 @@ import vn.doancnpm.dto.Response.CategoryResponse;
 import vn.doancnpm.repository.CategoryRepository;
 import vn.doancnpm.repository.ProductRepository;
 import vn.doancnpm.service.CategoryService;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +23,8 @@ public class ICategoryService implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
+    @Value("${category.allow-duplicate-display-order:true}")
+    private boolean allowDuplicateDisplayOrder;
 
     private CategoryResponse convertToResponse(Category category) {
         return new CategoryResponse(
@@ -37,17 +40,41 @@ public class ICategoryService implements CategoryService {
                         "Không tìm thấy danh mục với ID: " + categoryId));
     }
 
-    private String validateName(String name) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tên danh mục không được để trống");
+        private String validateName(String name) {
+            if (name == null || name.trim().isEmpty()) {
+                throw new IllegalArgumentException("Tên danh mục không được để trống");
+            }
+            String trimmed = name.trim();
+            if (trimmed.length() > 255) {
+                throw new IllegalArgumentException("Tên danh mục không được vượt quá 255 ký tự");
+            }
+            return trimmed;
         }
-        return name.trim();
-    }
 
+        private void validateDisplayOrder(Long displayOrder) {
+            if (displayOrder != null && displayOrder < 0) {
+                throw new IllegalArgumentException("Thứ tự hiển thị không được âm");
+            }
+        }
+        private void checkDuplicateDisplayOrder(Long displayOrder, Long excludeId) {
+        if (allowDuplicateDisplayOrder || displayOrder == null) {
+            return;
+        }
+        boolean exists = (excludeId == null)
+                ? categoryRepository.existsByDisplayOrder(displayOrder)
+                : categoryRepository.existsByDisplayOrderAndIdNot(displayOrder, excludeId);
+        if (exists) {
+            throw new IllegalArgumentException("Thứ tự hiển thị " + displayOrder + " đã được dùng");
+        }
+    }  
     @Override
     @Transactional
     public CategoryResponse create(CategoryRequest request) {
         String name = validateName(request.getName());
+        validateDisplayOrder(request.getDisplayOrder());
+
+        Long displayOrder = request.getDisplayOrder() != null ? request.getDisplayOrder() : 0L;
+        checkDuplicateDisplayOrder(displayOrder, null);
 
         if (categoryRepository.existsByNameIgnoreCase(name)) {
             throw new IllegalArgumentException("Tên danh mục đã tồn tại");
@@ -66,6 +93,8 @@ public class ICategoryService implements CategoryService {
     @Transactional
     public CategoryResponse update(Long categoryId, CategoryRequest request) {
         Category category = findCategoryOrThrow(categoryId);
+        validateDisplayOrder(request.getDisplayOrder());
+        checkDuplicateDisplayOrder(request.getDisplayOrder(), categoryId);
 
         if (request.getName() != null) {
             String name = validateName(request.getName());
@@ -140,6 +169,7 @@ public class ICategoryService implements CategoryService {
             throw new IllegalArgumentException("Thứ tự hiển thị không hợp lệ");
         }
         Category category = findCategoryOrThrow(categoryId);
+        checkDuplicateDisplayOrder(newDisplayOrder, categoryId);
         category.setDisplayOrder(newDisplayOrder);
         return convertToResponse(categoryRepository.save(category));
     }
