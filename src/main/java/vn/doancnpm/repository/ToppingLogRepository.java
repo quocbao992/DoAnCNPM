@@ -10,5 +10,4 @@ import vn.doancnpm.domain.ToppingLog;
 @Repository
 public interface ToppingLogRepository extends JpaRepository<ToppingLog, Long> {
     List<ToppingLog> findByToppingIdOrderByCreatedAtDesc(Long toppingId);
-    List<ToppingLog> findAllByOrderByCreatedAtDesc();
 }
