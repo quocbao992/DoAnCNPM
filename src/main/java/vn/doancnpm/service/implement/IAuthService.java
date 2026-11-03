@@ -101,7 +101,14 @@ public class IAuthService implements AuthService {
 
         UserResponse userResponse = covertToResponse(user);
 
-        return LoginResponse.builder().token(accessToken).refreshToken(refreshToken).expiresIn(86400000L).user(userResponse).build();
+        return LoginResponse.builder()
+                .token(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(86400000L)
+                .user(userResponse)
+                .build();
+
+
 
     }
 

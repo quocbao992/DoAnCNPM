@@ -30,6 +30,5 @@ public class OrderResponse {
     private String orderCode;
     private Order.OrderType orderType;
     private String tableNumber;
-    private Order.PaymentMethod paymentMethod;
     private String note;
 }

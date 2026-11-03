@@ -10,31 +10,30 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import lombok.AllArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "InventoryLog") 
-@Getter
-@Setter
+@Inheritance(strategy = InheritanceType.JOINED)
+@Getter @Setter
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InventoryLog {
+public abstract class InventoryLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "Id")
+    @Column(name = "Id_m")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "Id_P", nullable = false,unique = true)
-    private Product product;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "Id_O")
+    @JoinColumn(name = "Id_O", nullable = true)
     private Order order;
 
     @Column(name = "QuantityChange", nullable = false)
@@ -42,14 +41,9 @@ public class InventoryLog {
 
     @Column(name = "ChangeType", nullable = false)
     private String changeType;
-    
-    @Column(name = "createdAt", nullable = false)
-    private LocalDateTime createdAt;
 
-    @jakarta.persistence.PrePersist
-    protected void onCreate() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
-    }
+    @Column(name = "createdAt", nullable = false)
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 }
+

@@ -26,8 +26,11 @@ import vn.doancnpm.dto.Response.OrderResponse;
 import vn.doancnpm.dto.Response.OrderSummaryResponse;
 import vn.doancnpm.dto.Response.PageResponse;
 import vn.doancnpm.repository.OrderRepository;
-import vn.doancnpm.repository.ProductRepository;
+import vn.doancnpm.domain.Customer;
+import vn.doancnpm.repository.CustomerRepository;
 import vn.doancnpm.service.OrderService;
+import vn.doancnpm.service.ProductInventoryService;
+import vn.doancnpm.service.ToppingInventoryService;
 import vn.doancnpm.service.LoyaltyService;
 @SuppressWarnings("null")
 @Service
@@ -36,7 +39,9 @@ import vn.doancnpm.service.LoyaltyService;
 public class IOrderService implements OrderService {
 
     private final OrderRepository orderRepo;
-    private final ProductRepository productRepo;
+    private final CustomerRepository customerRepo;
+    private final ProductInventoryService productInventoryService;
+    private final ToppingInventoryService toppingInventoryService;
     private final LoyaltyService loyaltyService;
 
     // ===================== Lịch sử đơn (có phân trang) =====================
@@ -44,10 +49,14 @@ public class IOrderService implements OrderService {
     @Transactional(readOnly = true)
     public PageResponse<OrderSummaryResponse> getHistory(Long customerId, Order.Status status,
             int page, int size) {
+        Customer customer = customerRepo.findById(customerId)
+                .or(() -> customerRepo.findByUserId(customerId))
+                .orElse(null);
+        Long targetId = customer != null ? customer.getId() : customerId;
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Order> result = (status == null)
-                ? orderRepo.findByCustomerId(customerId, pageable)
-                : orderRepo.findByCustomerIdAndStatus(customerId, status, pageable);
+                ? orderRepo.findByCustomerId(targetId, pageable)
+                : orderRepo.findByCustomerIdAndStatus(targetId, status, pageable);
         return PageResponse.of(result.map(this::mapToSummary));
     }
 
@@ -106,7 +115,14 @@ public class IOrderService implements OrderService {
         // Đơn PAID đã bị trừ kho ở confirmOrder -> phải hoàn kho
         if (st == Order.Status.PAID) {
             for (OrderItem oi : order.getItems()) {
-                productRepo.restoreStock(oi.getProduct().getId(), oi.getQuantity());
+                productInventoryService.addStock(
+                        oi.getProduct().getId(), order, oi.getQuantity(), "ORDER_CANCEL");
+                if (oi.getToppings() != null) {
+                    for (OrderItemTopping ot : oi.getToppings()) {
+                        toppingInventoryService.addStock(
+                                ot.getTopping().getId(), order, ot.getQuantity(), "ORDER_CANCEL");
+                    }
+                }
             }
             
         }
@@ -121,7 +137,7 @@ public class IOrderService implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<AdminOrderResponse> adminSearch(LocalDate fromDate, LocalDate toDate,
-            Order.Status status, Order.PaymentMethod paymentMethod, int page, int size) {
+            Order.Status status, int page, int size) {
 
         Specification<Order> spec = (root, query, cb) -> {
             List<Predicate> ps = new ArrayList<>();
@@ -136,9 +152,9 @@ public class IOrderService implements OrderService {
             if (status != null) {
                 ps.add(cb.equal(root.get("status"), status));
             }
-            if (paymentMethod != null) {
-                ps.add(cb.equal(root.get("paymentMethod"), paymentMethod));
-            }
+          //  if (paymentMethod != null) {
+            //    ps.add(cb.equal(root.get("paymentMethod"), paymentMethod));
+          //  }
             return cb.and(ps.toArray(new Predicate[0]));
         };
 
@@ -226,7 +242,6 @@ public class IOrderService implements OrderService {
                 .status(o.getStatus())
                 .orderType(o.getOrderType())
                 .tableNumber(o.getTableNumber())
-                .paymentMethod(o.getPaymentMethod())
                 .note(o.getNote())
                 .items(o.getItems().stream().map(this::mapToItemResponse).toList())
                 .subtotal(o.getSubtotal())

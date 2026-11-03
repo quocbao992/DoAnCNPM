@@ -18,6 +18,21 @@ services:
       - "6379:6379"
     restart: always
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: brewlite_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_BACKEND_URL=http://host.docker.internal:8081
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
 
 volumes:
   mysqldata:
