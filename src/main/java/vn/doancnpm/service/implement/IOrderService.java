@@ -26,6 +26,8 @@ import vn.doancnpm.dto.Response.OrderResponse;
 import vn.doancnpm.dto.Response.OrderSummaryResponse;
 import vn.doancnpm.dto.Response.PageResponse;
 import vn.doancnpm.repository.OrderRepository;
+import vn.doancnpm.domain.Customer;
+import vn.doancnpm.repository.CustomerRepository;
 import vn.doancnpm.service.OrderService;
 import vn.doancnpm.service.ProductInventoryService;
 import vn.doancnpm.service.ToppingInventoryService;
@@ -37,6 +39,7 @@ import vn.doancnpm.service.LoyaltyService;
 public class IOrderService implements OrderService {
 
     private final OrderRepository orderRepo;
+    private final CustomerRepository customerRepo;
     private final ProductInventoryService productInventoryService;
     private final ToppingInventoryService toppingInventoryService;
     private final LoyaltyService loyaltyService;
@@ -46,10 +49,14 @@ public class IOrderService implements OrderService {
     @Transactional(readOnly = true)
     public PageResponse<OrderSummaryResponse> getHistory(Long customerId, Order.Status status,
             int page, int size) {
+        Customer customer = customerRepo.findById(customerId)
+                .or(() -> customerRepo.findByUserId(customerId))
+                .orElse(null);
+        Long targetId = customer != null ? customer.getId() : customerId;
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Order> result = (status == null)
-                ? orderRepo.findByCustomerId(customerId, pageable)
-                : orderRepo.findByCustomerIdAndStatus(customerId, status, pageable);
+                ? orderRepo.findByCustomerId(targetId, pageable)
+                : orderRepo.findByCustomerIdAndStatus(targetId, status, pageable);
         return PageResponse.of(result.map(this::mapToSummary));
     }
 

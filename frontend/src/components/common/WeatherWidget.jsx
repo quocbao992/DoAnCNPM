@@ -60,35 +60,57 @@ export const WeatherWidget = ({ onWeatherChange }) => {
     const cityObj = CITIES.find((c) => c.id === selectedCityId) || CITIES[0];
 
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${cityObj.lat}&longitude=${cityObj.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=Asia%2FHo_Chi_Minh`;
-      const res = await fetch(url);
-      const json = await res.json();
+      // Gọi API Backend qua weatherApi (GET /api/weather?city=...)
+      // Tuyệt đối không gọi trực tiếp bên thứ ba từ trình duyệt
+      const data = await weatherApi.getCurrent(selectedCityId);
 
-      if (json && json.current && json.daily) {
-        const cur = json.current;
-        const daily = json.daily;
+      if (data && data.available) {
+        let forecastList = [];
 
-        const dailyForecast = (daily.time || []).slice(0, 5).map((dateStr, idx) => {
-          return {
-            dateStr,
-            label: formatDayLabel(dateStr, idx),
-            tempMax: Math.round(daily.temperature_2m_max[idx]),
-            tempMin: Math.round(daily.temperature_2m_min[idx]),
-            rainProb: Math.round(daily.precipitation_probability_max[idx] || 0),
-            condition: CODE_MAP[daily.weather_code[idx]] || 'Nhiều mây',
-          };
-        });
+        if (data.hours && data.hours.length > 0) {
+          forecastList = data.hours.slice(0, 5).map((h, idx) => {
+            let label = `+${idx + 1}h`;
+            if (h.startTime) {
+              const d = new Date(h.startTime);
+              if (!isNaN(d.getTime())) {
+                label = `${String(d.getHours()).padStart(2, '0')}:00`;
+              }
+            }
+            return {
+              label,
+              tempMax: Math.round(h.temperature ?? data.temperature ?? 30),
+              tempMin: Math.round((h.temperature ?? data.temperature ?? 30) - 3),
+              rainProb: Math.round(h.precipitationPercent ?? 0),
+              condition: h.condition || data.description || 'Nhiều mây',
+            };
+          });
+        } else {
+          const now = new Date();
+          forecastList = Array.from({ length: 5 }).map((_, idx) => {
+            const d = new Date(now);
+            d.setDate(now.getDate() + idx);
+            const dateStr = d.toISOString().split('T')[0];
+            return {
+              dateStr,
+              label: formatDayLabel(dateStr, idx),
+              tempMax: Math.round((data.temperature || 31) + (idx % 2 === 0 ? 1 : 0)),
+              tempMin: Math.round((data.temperature || 31) - 6),
+              rainProb: Math.round(20 + idx * 10),
+              condition: data.description || 'Nhiều mây',
+            };
+          });
+        }
 
         const weatherData = {
           available: true,
-          city: cityObj.name,
-          temperature: Math.round(cur.temperature_2m),
-          feelsLike: Math.round(cur.apparent_temperature),
-          humidity: Math.round(cur.relative_humidity_2m),
-          wind: Math.round(cur.wind_speed_10m),
-          description: CODE_MAP[cur.weather_code] || 'Nhiều mây',
-          updatedAt: formatLocalTime(new Date()),
-          daily: dailyForecast,
+          city: data.city || cityObj.name,
+          temperature: Math.round(data.temperature ?? 30),
+          feelsLike: Math.round(data.feelsLike ?? (data.temperature ?? 30) + 3),
+          humidity: Math.round(data.humidity ?? 75),
+          wind: Math.round(data.wind ?? 10),
+          description: data.description || 'Trời quang',
+          updatedAt: formatLocalTime(data.updatedAt),
+          daily: forecastList,
         };
 
         setWeather(weatherData);
@@ -97,42 +119,10 @@ export const WeatherWidget = ({ onWeatherChange }) => {
         return;
       }
     } catch (err) {
-      console.warn('Lỗi fetch Open-Meteo, thử backend API:', err);
+      console.warn('Lỗi gọi API thời tiết qua backend:', err);
     }
 
-    try {
-      const data = await weatherApi.getCurrent(selectedCityId);
-      if (data && data.available) {
-        // Tạo 5 ngày dự báo từ ngày hiện tại
-        const now = new Date();
-        const fallbackDaily = Array.from({ length: 5 }).map((_, idx) => {
-          const d = new Date(now);
-          d.setDate(now.getDate() + idx);
-          const dateStr = d.toISOString().split('T')[0];
-          return {
-            dateStr,
-            label: formatDayLabel(dateStr, idx),
-            tempMax: Math.round((data.temperature || 31) + (idx % 2 === 0 ? 1 : 0)),
-            tempMin: Math.round((data.temperature || 31) - 6),
-            rainProb: Math.round(20 + idx * 10),
-            condition: data.description || 'Nhiều mây',
-          };
-        });
-
-        const parsedData = {
-          ...data,
-          updatedAt: formatLocalTime(data.updatedAt),
-          daily: fallbackDaily,
-        };
-        setWeather(parsedData);
-        if (onWeatherChange) onWeatherChange(parsedData);
-        setLoading(false);
-        return;
-      }
-    } catch (err) {
-      console.warn('Lỗi fetch backend weather:', err);
-    }
-
+    // Dự phòng khi backend chưa kết nối được
     const now = new Date();
     const fallbackDays = Array.from({ length: 5 }).map((_, idx) => {
       const d = new Date(now);
@@ -273,7 +263,7 @@ export const WeatherWidget = ({ onWeatherChange }) => {
 
       <div className="weather-card-footer">
         <span className="weather-source-text">
-          Dữ liệu: Open-Meteo, MET Norway
+          Dữ liệu thời tiết máy chủ BrewLite
         </span>
         <button
           className="weather-refresh-btn"

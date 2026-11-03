@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { orderApi } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { formatService } from '../services/formatService';
@@ -8,24 +8,34 @@ export const OrderHistoryPage = ({ onNavigate }) => {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const pollingRef = useRef(null);
 
-  useEffect(() => {
-    loadOrders();
-  }, [user]);
-
-  const loadOrders = async () => {
+  const loadOrders = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const customerId = user?.customerId || user?.id || 1;
       const res = await orderApi.getHistory({ customerId, page: 0, size: 20 });
       const list = res?.content || (Array.isArray(res) ? res : []);
       setOrders(list);
     } catch {
-      setOrders([]);
+      if (!isBackground) setOrders([]);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadOrders();
+
+    // Tự động làm mới mỗi 5 giây để khách hàng nhận trạng thái mới ngay khi Barista xác nhận
+    pollingRef.current = setInterval(() => {
+      loadOrders(true);
+    }, 5000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [user]);
 
   const handleCancel = async (orderId) => {
     if (!window.confirm('Bạn có chắc muốn hủy đơn hàng này?')) return;
@@ -37,28 +47,48 @@ export const OrderHistoryPage = ({ onNavigate }) => {
     }
   };
 
+  // Xác định bước tiến trình của đơn
+  const getStepProgress = (status) => {
+    switch (status) {
+      case 'PENDING':
+        return 1;
+      case 'PAID':
+        return 2;
+      case 'PREPARING':
+        return 3;
+      case 'READY':
+        return 4;
+      case 'COMPLETED':
+        return 5;
+      default:
+        return 0;
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner text="Đang tải lịch sử đơn hàng..." />;
   }
 
   return (
-    <div className="container" style={{ padding: '40px 24px 80px' }}>
+    <div className="container" style={{ padding: '36px 24px 80px', maxWidth: '850px', margin: '0 auto' }}>
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '28px',
+          marginBottom: '24px',
+          flexWrap: 'wrap',
+          gap: '12px',
         }}
       >
         <div>
-          <h1 style={{ fontSize: '2.2rem', fontWeight: 800 }}>Lịch Sử Đơn Hàng</h1>
-          <p style={{ color: 'var(--color-text-secondary)' }}>
-            Theo dõi tiến độ và các món bạn đã thưởng thức tại BrewLite
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Đơn Hàng Của Tôi</h1>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+            Theo dõi trạng thái pha chế và nhận đồ uống theo thời gian thực (tự động cập nhật)
           </p>
         </div>
 
-        <button className="btn btn-secondary btn-sm" onClick={loadOrders}>
+        <button className="btn btn-secondary btn-sm" onClick={() => loadOrders(false)}>
           Làm mới
         </button>
       </div>
@@ -67,15 +97,15 @@ export const OrderHistoryPage = ({ onNavigate }) => {
         <div
           style={{
             textAlign: 'center',
-            padding: '80px 20px',
+            padding: '60px 20px',
             background: 'var(--color-surface)',
             borderRadius: 'var(--radius-lg)',
             border: '1px solid var(--color-border)',
           }}
         >
-          <h3 style={{ fontSize: '1.3rem', marginBottom: '8px' }}>Chưa có đơn hàng nào</h3>
-          <p style={{ color: 'var(--color-text-secondary)', marginBottom: '24px' }}>
-            Hãy chọn một ly đồ uống mát lạnh từ thực đơn của chúng tôi ngay hôm nay!
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Chưa có đơn hàng nào</h3>
+          <p style={{ color: 'var(--color-text-secondary)', marginBottom: '20px', fontSize: '0.92rem' }}>
+            Hãy chọn một ly đồ uống mát lạnh từ thực đơn của BrewLite ngay hôm nay!
           </p>
           <button className="btn btn-primary" onClick={() => onNavigate('menu')}>
             Khám phá thực đơn
@@ -85,6 +115,9 @@ export const OrderHistoryPage = ({ onNavigate }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {orders.map((order) => {
             const statusInfo = formatService.getOrderStatusInfo(order.status);
+            const currentStep = getStepProgress(order.status);
+            const isCancelled = order.status === 'CANCELLED' || order.status === 'PAYMENT_FAILED';
+
             return (
               <div
                 key={order.id}
@@ -96,6 +129,7 @@ export const OrderHistoryPage = ({ onNavigate }) => {
                   boxShadow: 'var(--shadow-sm)',
                 }}
               >
+                {/* Header đơn hàng */}
                 <div
                   style={{
                     display: 'flex',
@@ -104,11 +138,13 @@ export const OrderHistoryPage = ({ onNavigate }) => {
                     borderBottom: '1px solid var(--color-surface-muted)',
                     paddingBottom: '14px',
                     marginBottom: '16px',
+                    flexWrap: 'wrap',
+                    gap: '10px',
                   }}
                 >
                   <div>
-                    <span style={{ fontWeight: 800, fontSize: '1.15rem' }}>
-                      {order.orderCode || `#ORD-${order.id}`}
+                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--color-accent)' }}>
+                      {order.orderCode || `#BL${order.id}`}
                     </span>
                     <span
                       style={{
@@ -124,7 +160,14 @@ export const OrderHistoryPage = ({ onNavigate }) => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span
                       className="status-badge"
-                      style={{ background: statusInfo.bg, color: statusInfo.color }}
+                      style={{
+                        background: statusInfo.bg,
+                        color: statusInfo.color,
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                      }}
                     >
                       {statusInfo.label}
                     </span>
@@ -132,7 +175,7 @@ export const OrderHistoryPage = ({ onNavigate }) => {
                     {order.status === 'PENDING' && (
                       <button
                         className="btn btn-secondary btn-sm"
-                        style={{ color: 'var(--color-danger)' }}
+                        style={{ color: '#ef4444', padding: '4px 8px' }}
                         onClick={() => handleCancel(order.id)}
                       >
                         Hủy đơn
@@ -141,6 +184,70 @@ export const OrderHistoryPage = ({ onNavigate }) => {
                   </div>
                 </div>
 
+                {/* Thanh tiến trình thời gian thực (Timeline) */}
+                {!isCancelled && (
+                  <div
+                    style={{
+                      background: 'var(--color-surface-muted)',
+                      borderRadius: '8px',
+                      padding: '14px 12px',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
+                      {[
+                        { step: 1, label: 'Đã nhận đơn' },
+                        { step: 2, label: 'Đã thanh toán' },
+                        { step: 3, label: 'Barista đang pha' },
+                        { step: 4, label: 'Mời nhận món' },
+                        { step: 5, label: 'Hoàn tất' },
+                      ].map((s) => {
+                        const isActive = currentStep >= s.step;
+                        const isCurrent = currentStep === s.step;
+                        return (
+                          <div
+                            key={s.step}
+                            style={{
+                              flex: 1,
+                              textAlign: 'center',
+                              position: 'relative',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '50%',
+                                background: isActive ? 'var(--color-accent)' : '#cbd5e1',
+                                color: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                margin: '0 auto 6px',
+                                boxShadow: isCurrent ? '0 0 0 3px rgba(193, 120, 56, 0.25)' : 'none',
+                              }}
+                            >
+                              {s.step}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: '0.75rem',
+                                fontWeight: isCurrent ? 700 : 500,
+                                color: isActive ? 'var(--color-text-main)' : 'var(--color-text-muted)',
+                              }}
+                            >
+                              {s.label}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Danh sách món */}
                 <div style={{ marginBottom: '14px' }}>
                   {order.items &&
                     order.items.map((item, idx) => (
@@ -157,31 +264,30 @@ export const OrderHistoryPage = ({ onNavigate }) => {
                         }}
                       >
                         <div>
-                          <div style={{ fontWeight: 600 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>
                             {item.quantity}x {item.productName || item.name}
                           </div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                            Size {item.size}
-                            {item.ice ? ` - Đá: ${item.ice}` : ''}
-                            {item.sugar ? ` - Đường: ${item.sugar}` : ''}
-                            {item.toppings && item.toppings.length > 0
-                              ? ` - Topping: ${item.toppings.join(', ')}`
-                              : ''}
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                            Size {item.size || 'M'}
+                            {item.toppings && item.toppings.length > 0 && (
+                              <span> • Topping: {item.toppings.map((t) => t.toppingName || t.name || t).join(', ')}</span>
+                            )}
                           </div>
                         </div>
-                        <div style={{ fontWeight: 700 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>
                           {formatService.formatMoney(item.lineTotal || item.unitPrice * item.quantity)}
                         </div>
                       </div>
                     ))}
                 </div>
 
+                {/* Footer đơn hàng */}
                 <div
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    paddingTop: '14px',
+                    paddingTop: '12px',
                     borderTop: '1px dashed var(--color-border)',
                   }}
                 >
@@ -189,14 +295,12 @@ export const OrderHistoryPage = ({ onNavigate }) => {
                     Hình thức:{' '}
                     <strong>
                       {order.orderType === 'DINE_IN'
-                        ? `Tại bàn (${order.tableNumber || 'Bàn chưa số'})`
-                        : order.orderType === 'TAKE_AWAY'
-                        ? 'Mang đi'
-                        : 'Giao hàng'}
+                        ? `Tại bàn (${order.tableNumber || 'Chưa rõ'})`
+                        : 'Mang đi'}
                     </strong>
                   </span>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-accent)' }}>
-                    Tổng: {formatService.formatMoney(order.totalAmount || order.subtotal)}
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-accent)' }}>
+                    Tổng cộng: {formatService.formatMoney(order.totalAmount || order.subtotal)}
                   </div>
                 </div>
               </div>

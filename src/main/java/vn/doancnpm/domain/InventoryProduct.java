@@ -35,7 +35,11 @@ public class InventoryProduct {
 
     @Column(name = "stock", nullable = false)
     @Builder.Default
-    private Integer stock = 0;
+    private Integer stock = 0; // Số lượng đang bán (menu/quầy)
+
+    @Column(name = "warehouse_stock", nullable = false)
+    @Builder.Default
+    private Integer warehouseStock = 100; // Số lượng tồn kho lưu trữ
 
     @Column(name = "min_threshold")
     @Builder.Default

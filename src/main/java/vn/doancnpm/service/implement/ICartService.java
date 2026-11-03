@@ -44,10 +44,15 @@ public class ICartService implements CartService {
     @Override
     public CartResponse addToCart(CartRequest rq) {
         Customer customer = customerRepo.findById(rq.getCustomerId())
+                .or(() -> customerRepo.findByUserId(rq.getCustomerId()))
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng"));
 
         Cart cart = cartRepo.findByCustomerId(customer.getId())
-                .orElseGet(() -> cartRepo.save(Cart.builder().customer(customer).build()));
+                .orElseGet(() -> cartRepo.save(Cart.builder().customer(customer).status(true).build()));
+        if (Boolean.FALSE.equals(cart.getStatus())) {
+            cart.setStatus(true);
+            cart = cartRepo.save(cart);
+        }
 
         Product product = productRepo.findById(rq.getItem().getProductId())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm"));
@@ -102,24 +107,31 @@ public class ICartService implements CartService {
     @Override
     public void clearCart(Long customerId) {
         Customer customer = customerRepo.findById(customerId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng"));
+                .or(() -> customerRepo.findByUserId(customerId))
+                .orElse(null);
+        if (customer == null) return;
         
-        Cart cart = cartRepo.findByCustomerId(customer.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy giỏ hàng của khách hàng"));
-
-        List<CartItem> items = cartItemRepo.findByCart(cart);
-        if (!items.isEmpty()) {
-            cartItemRepo.deleteAll(items);
+        Cart cart = cartRepo.findByCustomerId(customer.getId()).orElse(null);
+        if (cart != null) {
+            List<CartItem> items = cartItemRepo.findByCart(cart);
+            if (!items.isEmpty()) {
+                cartItemRepo.deleteAll(items);
+            }
         }
     }
 
     @Override
     public CartResponse getCart(Long customerId) {
         Customer customer = customerRepo.findById(customerId)
+                .or(() -> customerRepo.findByUserId(customerId))
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng"));
 
         Cart cart = cartRepo.findByCustomerId(customer.getId())
-                .orElseGet(() -> cartRepo.save(Cart.builder().customer(customer).build()));
+                .orElseGet(() -> cartRepo.save(Cart.builder().customer(customer).status(true).build()));
+        if (Boolean.FALSE.equals(cart.getStatus())) {
+            cart.setStatus(true);
+            cart = cartRepo.save(cart);
+        }
 
         return mapToCartResponse(cart);
     }

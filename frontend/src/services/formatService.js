@@ -8,7 +8,11 @@ export const formatService = {
   },
 
   formatCurrency(amount) {
-    return this.formatMoney(amount);
+    const num = Number(amount) || 0;
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+    }).format(num);
   },
 
   formatDateTime(dateStr) {

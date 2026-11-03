@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { customerApi } from '../api';
+import { customerApi, userApi } from '../api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export const ProfilePage = ({ onNavigate }) => {
@@ -29,35 +29,81 @@ export const ProfilePage = ({ onNavigate }) => {
     loadProfile();
   }, [user?.id]);
 
+  const getRoleBadge = (role) => {
+    const normalized = String(role || '').toUpperCase().replace(/^ROLE_/, '').trim();
+    switch (normalized) {
+      case 'ADMIN':
+        return { label: 'Quản trị viên (ADMIN)', bg: '#fef3c7', color: '#b45309' };
+      case 'BARISTA':
+        return { label: 'Nhân viên pha chế (Barista)', bg: '#e0e7ff', color: '#4338ca' };
+      case 'CASHIER':
+        return { label: 'Thu ngân', bg: '#dcfce7', color: '#15803d' };
+      case 'STAFF':
+        return { label: 'Nhân viên hệ thống', bg: '#dcfce7', color: '#15803d' };
+      case 'CUSTOMER':
+        return { label: 'Khách hàng thân thiết', bg: '#e0f2fe', color: '#0369a1' };
+      default:
+        return { label: normalized || 'Khách hàng thân thiết', bg: '#e0f2fe', color: '#0369a1' };
+    }
+  };
+
   const loadProfile = async () => {
     if (!user?.id) {
       setLoading(false);
       return;
     }
+    setProfileError('');
     try {
       setLoading(true);
-      const data = await customerApi.getProfile(user.id);
-      setProfile(data);
-      setFullName(data.fullName || '');
-      setPhone(data.phone || '');
-      if (data.dateOfBirth) {
-        const parts = String(data.dateOfBirth).split(/[/.-]/);
-        if (parts.length === 3) {
-          if (parts[0].length === 4) {
-            setDobYear(parts[0]);
-            setDobMonth(parts[1]);
-            setDobDay(parts[2]);
-          } else {
-            setDobDay(parts[0]);
-            setDobMonth(parts[1]);
-            setDobYear(parts[2]);
+      let data = null;
+      if (user.role === 'CUSTOMER') {
+        try {
+          data = await customerApi.getProfile(user.id);
+        } catch {
+          data = await userApi.getProfile(user.id).catch(() => null);
+        }
+      } else {
+        data = await userApi.getProfile(user.id).catch(() => null);
+      }
+
+      if (data) {
+        setProfile(data);
+        setFullName(data.fullName || user.fullName || user.username || '');
+        setPhone(data.phone || user.phone || '');
+        if (data.dateOfBirth) {
+          const parts = String(data.dateOfBirth).split(/[/.-]/);
+          if (parts.length === 3) {
+            if (parts[0].length === 4) {
+              setDobYear(parts[0]);
+              setDobMonth(parts[1]);
+              setDobDay(parts[2]);
+            } else {
+              setDobDay(parts[0]);
+              setDobMonth(parts[1]);
+              setDobYear(parts[2]);
+            }
           }
         }
+        setGender(data.gender !== undefined && data.gender !== null ? Boolean(data.gender) : true);
+      } else {
+        setProfile({
+          username: user.username,
+          fullName: user.fullName || user.username,
+          email: user.email,
+          role: user.role,
+        });
+        setFullName(user.fullName || user.username || '');
+        setPhone(user.phone || '');
       }
-      setGender(data.gender !== undefined && data.gender !== null ? Boolean(data.gender) : true);
     } catch (err) {
-      console.error('Lỗi khi tải thông tin cá nhân:', err);
-      setProfileError('Không thể tải dữ liệu thông tin cá nhân từ hệ thống.');
+      console.warn('Lỗi khi tải thông tin cá nhân:', err);
+      setProfile({
+        username: user?.username,
+        fullName: user?.fullName || user?.username,
+        email: user?.email,
+        role: user?.role,
+      });
+      setFullName(user?.fullName || user?.username || '');
     } finally {
       setLoading(false);
     }
@@ -142,7 +188,7 @@ export const ProfilePage = ({ onNavigate }) => {
       setProfileError('Họ và tên không được để trống.');
       return;
     }
-    if (!/^(0|\+84)[0-9]{9}$/.test(phone.trim())) {
+    if (phone.trim() && !/^(0|\+84)[0-9]{9}$/.test(phone.trim())) {
       setProfileError('Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 0 hoặc +84).');
       return;
     }
@@ -167,15 +213,26 @@ export const ProfilePage = ({ onNavigate }) => {
         dateOfBirth: isoDob,
         gender: Boolean(gender),
       };
-      const updated = await customerApi.updateProfile(user.id, payload);
-      setProfile(updated);
+
+      let updated = null;
+      if (user?.role === 'CUSTOMER') {
+        try {
+          updated = await customerApi.updateProfile(user.id, payload);
+        } catch {
+          updated = await userApi.updateProfile(user.id, { fullName: fullName.trim(), phone: phone.trim() });
+        }
+      } else {
+        updated = await userApi.updateProfile(user.id, { fullName: fullName.trim(), phone: phone.trim() });
+      }
+
+      setProfile((prev) => ({ ...prev, ...updated, fullName: fullName.trim(), phone: phone.trim() }));
       if (updated && updated.gender !== undefined && updated.gender !== null) {
         setGender(Boolean(updated.gender));
       }
-      setProfileSuccess('Cập nhật thông tin cá nhân thành công!');
+      setProfileSuccess('Cập nhật thông tin thành công!');
 
       if (setUser && user) {
-        setUser({ ...user, fullName: updated.fullName, phone: updated.phone, gender: updated.gender });
+        setUser({ ...user, fullName: fullName.trim(), phone: phone.trim() });
       }
     } catch (err) {
       setProfileError(err.message || 'Cập nhật thông tin thất bại.');
@@ -204,7 +261,7 @@ export const ProfilePage = ({ onNavigate }) => {
 
     try {
       setSavingPassword(true);
-      await customerApi.changePassword(user.id, {
+      await userApi.changePassword(user.id, {
         oldPassword,
         newPassword,
         confirmPassword,
@@ -229,13 +286,20 @@ export const ProfilePage = ({ onNavigate }) => {
   }
 
   const loyaltyPts = profile?.loyaltyPoints ?? profile?.loyaltyPoint ?? 0;
+  const rawRole = user?.role || profile?.role || 'CUSTOMER';
+  const currentRole = String(rawRole).toUpperCase().replace(/^ROLE_/, '').trim();
+  const roleBadge = getRoleBadge(currentRole);
 
   return (
     <div className="container" style={{ padding: '40px 24px 60px', maxWidth: '880px', margin: '0 auto' }}>
       <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '2.2rem', fontWeight: 800 }}>Thông Tin Khách Hàng</h1>
+        <h1 style={{ fontSize: '2.2rem', fontWeight: 800 }}>
+          {currentRole === 'CUSTOMER' ? 'Thông Tin Khách Hàng' : 'Thông Tin Tài Khoản'}
+        </h1>
         <p style={{ color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-          Quản lý hồ sơ cá nhân, điểm tích lũy và bảo mật tài khoản BrewLite
+          {currentRole === 'CUSTOMER'
+            ? 'Quản lý hồ sơ cá nhân, điểm tích lũy và bảo mật tài khoản BrewLite'
+            : 'Quản lý thông tin quản trị viên, thông tin liên hệ và bảo mật tài khoản'}
         </p>
       </div>
 
@@ -282,11 +346,11 @@ export const ProfilePage = ({ onNavigate }) => {
                     borderRadius: '12px',
                     fontSize: '0.78rem',
                     fontWeight: 700,
-                    background: '#e0f2fe',
-                    color: '#0369a1',
+                    background: roleBadge.bg,
+                    color: roleBadge.color,
                   }}
                 >
-                  Khách hàng thân thiết
+                  {roleBadge.label}
                 </span>
               </div>
             </div>
@@ -300,10 +364,19 @@ export const ProfilePage = ({ onNavigate }) => {
                 <span style={{ color: 'var(--color-text-secondary)' }}>Email:</span>
                 <span style={{ fontWeight: 600 }}>{profile?.email || user?.email || 'Chưa cập nhật'}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Điểm tích lũy:</span>
-                <span style={{ fontWeight: 800, color: 'var(--color-accent)' }}>{loyaltyPts} điểm</span>
-              </div>
+              {currentRole === 'CUSTOMER' ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Điểm tích lũy:</span>
+                  <span style={{ fontWeight: 800, color: 'var(--color-accent)' }}>{loyaltyPts} điểm</span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Quyền hạn:</span>
+                  <span style={{ fontWeight: 700, color: '#16a34a' }}>
+                    {currentRole === 'ADMIN' ? 'Toàn quyền quản trị hệ thống' : currentRole}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div style={{ marginTop: '20px', display: 'flex', gap: '8px' }}>

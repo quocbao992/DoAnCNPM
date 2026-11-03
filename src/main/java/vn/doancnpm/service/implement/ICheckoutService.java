@@ -18,6 +18,8 @@ import vn.doancnpm.dto.Response.OrderResponse;
 import vn.doancnpm.repository.CartItemRepository;
 import vn.doancnpm.repository.CartRepository;
 import vn.doancnpm.repository.OrderRepository;
+import vn.doancnpm.domain.Customer;
+import vn.doancnpm.repository.CustomerRepository;
 import vn.doancnpm.service.CheckoutService;
 import vn.doancnpm.service.OrderService;
 import vn.doancnpm.service.LoyaltyService;
@@ -31,6 +33,7 @@ import vn.doancnpm.service.ToppingInventoryService;
 @Transactional
 public class ICheckoutService implements CheckoutService {
 
+    private final CustomerRepository customerRepo;
     private final CartRepository cartRepo;
     private final CartItemRepository cartItemRepo;
     private final OrderRepository orderRepo;
@@ -48,7 +51,10 @@ public class ICheckoutService implements CheckoutService {
     @Override
     public OrderResponse checkout(CheckoutRequest rq) {
         Long customerId = rq.getCustomerId();
-        Cart cart = findActiveCart(customerId);
+        Customer customer = customerRepo.findById(customerId)
+                .or(() -> customerRepo.findByUserId(customerId))
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin khách hàng"));
+        Cart cart = findActiveCart(customer.getId());
      
         if (cart == null) {
             throw new IllegalStateException("Không có giỏ hàng đang dùng");
@@ -237,9 +243,17 @@ public class ICheckoutService implements CheckoutService {
     // Giỏ đang dùng của khách (status = true), không có thì trả null
      
     private Cart findActiveCart(Long customerId) {
-        return cartRepo.findByCustomerId(customerId)
-                .filter(c -> Boolean.TRUE.equals(c.getStatus()))
+        Customer customer = customerRepo.findById(customerId)
+                .or(() -> customerRepo.findByUserId(customerId))
                 .orElse(null);
+        if (customer == null) return null;
+
+        Cart cart = cartRepo.findByCustomerId(customer.getId()).orElse(null);
+        if (cart != null && Boolean.FALSE.equals(cart.getStatus())) {
+            cart.setStatus(true);
+            cart = cartRepo.save(cart);
+        }
+        return cart;
     }
 
     // Số topping cần kiểm tra/trừ kho cho một dòng giỏ hàng.

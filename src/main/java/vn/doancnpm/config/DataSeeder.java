@@ -67,7 +67,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private User seedUser(String username, String fullName, String email,
-                          String rawPassword, String role, String phone) {
+            String rawPassword, String role, String phone) {
         return userRepository.findByUsername(username).orElseGet(() -> {
             User user = new User();
             user.setUsername(username);
@@ -95,32 +95,15 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedCategories() {
         if (categoryRepository.count() == 0) {
-            categoryRepository.save(Category.builder().name("Ca Phe Truyen Thong").displayOrder(1L).status(true).build());
-            categoryRepository.save(Category.builder().name("Espresso & Ca Phe Y").displayOrder(2L).status(true).build());
-            categoryRepository.save(Category.builder().name("Cold Brew Dac Biet").displayOrder(3L).status(true).build());
+            categoryRepository
+                    .save(Category.builder().name("Ca Phe Truyen Thong").displayOrder(1L).status(true).build());
+            categoryRepository
+                    .save(Category.builder().name("Espresso & Ca Phe Y").displayOrder(2L).status(true).build());
+            categoryRepository
+                    .save(Category.builder().name("Cold Brew Dac Biet").displayOrder(3L).status(true).build());
             categoryRepository.save(Category.builder().name("Tra Trai Cay").displayOrder(4L).status(true).build());
             categoryRepository.save(Category.builder().name("Banh Ngot An Kem").displayOrder(5L).status(true).build());
             log.info("Da khoi tao danh muc.");
-        }
-
-        // Đảm bảo danh mục Topping luôn tồn tại
-        if (!categoryRepository.existsByNameIgnoreCase("Topping")) {
-            Category catTopping = categoryRepository.save(Category.builder().name("Topping").displayOrder(6L).status(true).build());
-            log.info("Da them danh muc Topping vao he thong.");
-
-            // Thêm các món Topping vào danh mục để hiển thị trên thực đơn
-            if (!productRepository.existsByNameIgnoreCase("Tran Chau Trang")) {
-                seedProduct("Tran Chau Trang", catTopping, 10000, 200, null);
-            }
-            if (!productRepository.existsByNameIgnoreCase("Thach Ca Phe")) {
-                seedProduct("Thach Ca Phe", catTopping, 10000, 200, null);
-            }
-            if (!productRepository.existsByNameIgnoreCase("Kem Cheese Beo")) {
-                seedProduct("Kem Cheese Beo", catTopping, 15000, 200, null);
-            }
-            if (!productRepository.existsByNameIgnoreCase("Sot Caramel")) {
-                seedProduct("Sot Caramel", catTopping, 8000, 200, null);
-            }
         }
     }
 
@@ -171,7 +154,8 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedProducts() {
         List<Category> categories = categoryRepository.findAllByOrderByDisplayOrderAsc();
-        if (categories.isEmpty()) return;
+        if (categories.isEmpty())
+            return;
 
         Category catTrad = categories.get(0);
         Category catMachine = categories.size() > 1 ? categories.get(1) : catTrad;
@@ -194,7 +178,8 @@ public class DataSeeder implements CommandLineRunner {
         if (orderRepository.count() == 0) {
             List<Customer> customers = customerRepository.findAll();
             List<Product> products = productRepository.findAll();
-            if (customers.isEmpty() || products.isEmpty()) return;
+            if (customers.isEmpty() || products.isEmpty())
+                return;
 
             Customer c1 = customers.get(0);
             Customer c2 = customers.size() > 1 ? customers.get(1) : c1;
@@ -230,8 +215,8 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void createOrder(Customer customer, String orderCode, Order.Status status,
-                             Order.OrderType orderType, String tableNumber,
-                             List<OrderItem> items) {
+            Order.OrderType orderType, String tableNumber,
+            List<OrderItem> items) {
         Order order = new Order();
         order.setCustomer(customer);
         order.setOrderCode(orderCode);

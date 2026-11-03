@@ -8,4 +8,6 @@ export { default as paymentApi } from './paymentApi';
 export { default as userApi } from './userApi';
 export { default as customerApi } from './customerApi';
 export { default as weatherApi } from './weatherApi';
-
+export { default as toppingApi } from './toppingApi';
+export { default as inventoryApi } from './inventoryApi';
+export { default as promotionApi } from './promotionApi';

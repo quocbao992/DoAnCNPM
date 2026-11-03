@@ -5,6 +5,7 @@ import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import CustomerBottomDock from './components/common/CustomerBottomDock';
 import AdminLeftSidebar from './components/common/AdminLeftSidebar';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import HomePage from './pages/HomePage';
 import MenuPage from './pages/MenuPage';
 import CartPage from './pages/CartPage';
@@ -20,7 +21,7 @@ const MainApp = () => {
   const [currentTab, setCurrentTab] = useState('home');
   const [adminSubTab, setAdminSubTab] = useState('dashboard');
   const [authNotice, setAuthNotice] = useState('');
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, isBarista, canAccessAdminPortal } = useAuth();
 
   const handleNavigate = (tab) => {
     const isLoggedIn = isAuthenticated || authService.isAuthenticated();
@@ -32,11 +33,16 @@ const MainApp = () => {
       return;
     }
 
-    if (tab === 'admin' && !isAdmin) {
-      setAuthNotice('Bạn cần đăng nhập tài khoản Quản trị viên (Admin) để truy cập.');
+    if (tab === 'admin' && !canAccessAdminPortal) {
+      setAuthNotice('Bạn cần đăng nhập tài khoản Quản trị viên (Admin) hoặc Barista để truy cập.');
       setCurrentTab('login');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
+    }
+
+    // Nếu là Barista thì luôn khóa vào tab orders
+    if (tab === 'admin' && isBarista) {
+      setAdminSubTab('orders');
     }
 
     setAuthNotice('');
@@ -44,19 +50,25 @@ const MainApp = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (currentTab === 'admin' && isAdmin) {
+  // Màn hình Quản trị Admin / Barista
+  if (currentTab === 'admin' && canAccessAdminPortal) {
+    const activeSubTab = isBarista ? 'orders' : adminSubTab;
     return (
       <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
         <AdminLeftSidebar
-          adminTab={adminSubTab}
-          onSelectTab={setAdminSubTab}
+          adminTab={activeSubTab}
+          onSelectTab={(tab) => {
+            if (!isBarista) setAdminSubTab(tab);
+          }}
           onNavigateToCustomer={() => handleNavigate('home')}
         />
         <div style={{ marginLeft: '76px', flex: 1, minHeight: '100vh', overflowY: 'auto' }}>
-          <AdminPortalPage
-            activeTab={adminSubTab}
-            onNavigate={handleNavigate}
-          />
+          <ErrorBoundary>
+            <AdminPortalPage
+              activeTab={activeSubTab}
+              onNavigate={handleNavigate}
+            />
+          </ErrorBoundary>
         </div>
       </div>
     );
@@ -78,10 +90,12 @@ const MainApp = () => {
         return <ProfilePage onNavigate={handleNavigate} />;
       case 'admin':
         return (
-          <AdminPortalPage
-            activeTab={adminSubTab}
-            onNavigate={handleNavigate}
-          />
+          <ErrorBoundary>
+            <AdminPortalPage
+              activeTab={adminSubTab}
+              onNavigate={handleNavigate}
+            />
+          </ErrorBoundary>
         );
       case 'login':
         return <LoginPage onNavigate={handleNavigate} initialNotice={authNotice} />;
@@ -96,11 +110,11 @@ const MainApp = () => {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar currentTab={currentTab} onNavigate={handleNavigate} />
       <main style={{ flex: 1 }} className="page-has-bottom-dock">
-        {renderContent()}
+        <ErrorBoundary>
+          {renderContent()}
+        </ErrorBoundary>
       </main>
       <Footer />
-
-      {/* Thanh công cụ ở dưới cho người dùng dễ thao tác (Hình vuông bo góc theo Hình 2) */}
       <CustomerBottomDock currentTab={currentTab} onNavigate={handleNavigate} />
     </div>
   );

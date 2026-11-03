@@ -153,7 +153,12 @@ export const CartPage = ({ onNavigate }) => {
                         }}
                       />
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '1rem' }}>{item.name}</div>
+                        <div style={{ fontSize: '0.95rem' }}>{item.name}</div>
+                        {item.toppings && item.toppings.length > 0 && (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                            Topping: {item.toppings.map((t) => t.name).join(', ')}
+                          </div>
+                        )}
                         {editingNoteId === item.id ? (
                           <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
                             <input

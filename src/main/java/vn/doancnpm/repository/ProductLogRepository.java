@@ -9,5 +9,6 @@ import vn.doancnpm.domain.ProductLog;
 
 @Repository
 public interface ProductLogRepository extends JpaRepository<ProductLog, Long> {
-    List<ProductLog> findByIdOrderByCreatedAtDesc(Long productId);
+    List<ProductLog> findByProductIdOrderByCreatedAtDesc(Long productId);
+    List<ProductLog> findAllByOrderByCreatedAtDesc();
 }

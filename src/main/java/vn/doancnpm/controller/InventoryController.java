@@ -1,6 +1,7 @@
 package vn.doancnpm.controller;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import vn.doancnpm.dto.Request.InventoryActionRequest;
 import vn.doancnpm.dto.Request.ProductStockRequest;
 import vn.doancnpm.dto.Request.ToppingStockRequest;
 import vn.doancnpm.dto.Response.InventoryLogResponse;
@@ -32,6 +34,51 @@ public class InventoryController {
     private final ProductInventoryService productInventoryService;
     private final ToppingInventoryService toppingInventoryService;
     private final InventoryLogService inventoryLogService;
+
+    // ======================== TỔNG QUAN KHO ========================
+
+    @GetMapping("/overview")
+    public ResponseEntity<List<InventoryStockResponse>> getInventoryOverview() {
+        List<InventoryStockResponse> result = new ArrayList<>();
+        result.addAll(productInventoryService.getAllProductStocks());
+        result.addAll(toppingInventoryService.getAllToppingStocks());
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/warehouse/add")
+    public ResponseEntity<String> addWarehouseStock(@RequestBody InventoryActionRequest req) {
+        if (req.getId() == null || req.getAmount() == null || req.getAmount() <= 0) {
+            throw new IllegalArgumentException("ID và số lượng nhập (amount > 0) là bắt buộc!");
+        }
+
+        if ("TOPPING".equalsIgnoreCase(req.getType())) {
+            toppingInventoryService.addWarehouseStock(req.getId(), req.getAmount(), req.getReason());
+            return ResponseEntity.ok("Nhập thêm " + req.getAmount() + " vào tồn kho Topping thành công!");
+        } else {
+            productInventoryService.addWarehouseStock(req.getId(), req.getAmount(), req.getReason());
+            return ResponseEntity.ok("Nhập thêm " + req.getAmount() + " vào tồn kho Sản phẩm thành công!");
+        }
+    }
+
+    @PostMapping("/transfer-to-selling")
+    public ResponseEntity<String> transferToSelling(@RequestBody InventoryActionRequest req) {
+        if (req.getId() == null || req.getAmount() == null || req.getAmount() <= 0) {
+            throw new IllegalArgumentException("ID và số lượng chuyển sang bán (amount > 0) là bắt buộc!");
+        }
+
+        if ("TOPPING".equalsIgnoreCase(req.getType())) {
+            toppingInventoryService.transferToSelling(req.getId(), req.getAmount());
+            return ResponseEntity.ok("Đã chuyển " + req.getAmount() + " từ Tồn kho sang Đang bán Topping!");
+        } else {
+            productInventoryService.transferToSelling(req.getId(), req.getAmount());
+            return ResponseEntity.ok("Đã chuyển " + req.getAmount() + " từ Tồn kho sang Đang bán Sản phẩm!");
+        }
+    }
+
+    @GetMapping("/logs")
+    public ResponseEntity<List<InventoryLogResponse>> getAllLogs() {
+        return ResponseEntity.ok(inventoryLogService.getAllLogs());
+    }
 
     // ======================== TOPPING ========================
 
@@ -123,7 +170,6 @@ public class InventoryController {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
-    // Lỗi từ @Valid trong ProductStockRequest / ToppingStockRequest
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()

@@ -18,11 +18,14 @@ export const orderApi = {
   getById(id) {
     return axiosClient.get(`/api/v1/orders/${id}`);
   },
-  cancel(id, reason = '') {
-    return axiosClient.post(`/api/v1/orders/${id}/cancel`, { reason });
+  cancel(id, reason = 'Khách hàng yêu cầu hủy qua ứng dụng') {
+    return axiosClient.put(`/api/v1/orders/${id}/cancel`, { reason });
   },
   updateStatus(id, status) {
     return axiosClient.put(`/api/v1/orders/${id}/status`, { status });
+  },
+  confirmOrder(id) {
+    return axiosClient.post(`/api/v1/orders/${id}/confirm`);
   },
   adminGetAll(params = {}) {
     return axiosClient.get('/api/admin/orders', { params });

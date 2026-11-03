@@ -12,7 +12,7 @@ import vn.doancnpm.service.PaymentGatewayService;
 @Component
 public class IMockPaymentGateway implements PaymentGatewayService {
 
-    @Value("${mock.gateway.base-url:http://localhost:8082}")
+    @Value("${mock.gateway.base-url:http://localhost:8081}")
     private String baseUrl;
 
     // Cổng thật sẽ trả link VNPay/Momo. Mock trả link tới endpoint giả lập bên dưới.

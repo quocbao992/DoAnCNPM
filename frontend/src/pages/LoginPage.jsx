@@ -58,13 +58,12 @@ export const LoginPage = ({ onNavigate, initialNotice = '' }) => {
           <div
             style={{
               padding: '12px 14px',
-              background: '#fef3c7',
-              color: '#92400e',
-              border: '1px solid #fde68a',
+              background: '#f8fafc',
+              color: 'var(--color-text-main)',
+              border: '1px solid var(--color-border)',
               borderRadius: 'var(--radius-md)',
               marginBottom: '20px',
               fontSize: '0.92rem',
-              fontWeight: 600,
             }}
           >
             {initialNotice}

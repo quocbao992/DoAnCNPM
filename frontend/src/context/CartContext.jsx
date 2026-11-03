@@ -38,10 +38,13 @@ export const CartProvider = ({ children }) => {
     } catch {}
   };
 
-  const addToCart = async (product, quantity = 1, size = 'M', note = '') => {
+  const addToCart = async (product, quantity = 1, size = 'M', note = '', selectedToppings = []) => {
     const sizeExtra = size === 'L' ? 10000 : size === 'M' ? 5000 : 0;
+    const toppingsExtra = (selectedToppings || []).reduce((sum, t) => sum + (Number(t.unitPrice) || 0), 0);
     const basePrice = product.unitPrice || 0;
-    const finalUnitPrice = basePrice + sizeExtra;
+    const finalUnitPrice = basePrice + sizeExtra + toppingsExtra;
+
+    const toppingsSummary = (selectedToppings || []).map((t) => t.name).sort().join(', ');
 
     const newItem = {
       id: Date.now(),
@@ -53,7 +56,8 @@ export const CartProvider = ({ children }) => {
       size,
       unitPrice: finalUnitPrice,
       note,
-      toppings: [],
+      toppings: selectedToppings || [],
+      toppingsSummary,
       itemTotalPrice: finalUnitPrice * quantity,
     };
 
@@ -62,7 +66,8 @@ export const CartProvider = ({ children }) => {
         (item) =>
           item.productId === product.id &&
           item.size === size &&
-          item.note === note
+          item.note === note &&
+          (item.toppingsSummary || '') === toppingsSummary
       );
 
       if (existingIndex > -1) {
@@ -83,11 +88,13 @@ export const CartProvider = ({ children }) => {
       try {
         await cartApi.addItem({
           customerId: user.id,
-          productId: product.id,
-          quantity,
-          size,
-          note,
-          toppingIds: [],
+          item: {
+            productId: product.id,
+            quantity,
+            size,
+            note,
+            toppings: (selectedToppings || []).map((t) => ({ toppingId: t.id, quantity: 1 })),
+          },
         });
       } catch {}
     }
@@ -149,7 +156,8 @@ export const CartProvider = ({ children }) => {
             ? item.baseUnitPrice
             : item.unitPrice - (item.size === 'L' ? 10000 : item.size === 'M' ? 5000 : 0);
         const sizeExtra = newSize === 'L' ? 10000 : newSize === 'M' ? 5000 : 0;
-        const newUnitPrice = Math.max(0, base + sizeExtra);
+        const toppingsExtra = (item.toppings || []).reduce((sum, t) => sum + (Number(t.unitPrice) || 0), 0);
+        const newUnitPrice = Math.max(0, base + sizeExtra + toppingsExtra);
         return {
           ...item,
           size: newSize,
@@ -190,3 +198,5 @@ export const useCart = () => {
   }
   return context;
 };
+
+export default CartContext;

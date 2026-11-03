@@ -11,7 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 
 export const CustomerBottomDock = ({ currentTab, onNavigate }) => {
-  const { isAuthenticated, isAdmin, user } = useAuth();
+  const { isAuthenticated, isAdmin, isBarista, user } = useAuth();
   const { totalItems } = useCart();
 
   return (
@@ -22,6 +22,7 @@ export const CustomerBottomDock = ({ currentTab, onNavigate }) => {
         className={`tool-square-btn ${currentTab === 'home' ? 'active' : ''}`}
         onClick={() => onNavigate('home')}
         aria-label="Trang chủ"
+        title="Trang chủ"
       >
         <IconHome size={22} />
         <span className="dock-tooltip dock-tooltip-top">Trang chủ</span>
@@ -33,6 +34,7 @@ export const CustomerBottomDock = ({ currentTab, onNavigate }) => {
         className={`tool-square-btn ${currentTab === 'menu' ? 'active' : ''}`}
         onClick={() => onNavigate('menu')}
         aria-label="Thực đơn"
+        title="Thực đơn"
       >
         <IconGrid size={22} />
         <span className="dock-tooltip dock-tooltip-top">Thực đơn</span>
@@ -44,6 +46,7 @@ export const CustomerBottomDock = ({ currentTab, onNavigate }) => {
         className={`tool-square-btn ${currentTab === 'orders' ? 'active' : ''}`}
         onClick={() => onNavigate(isAuthenticated ? 'orders' : 'login')}
         aria-label="Đơn hàng của tôi"
+        title={isAuthenticated ? 'Đơn hàng của tôi' : 'Đăng nhập xem đơn'}
       >
         <IconOrders size={22} />
         <span className="dock-tooltip dock-tooltip-top">
@@ -57,6 +60,7 @@ export const CustomerBottomDock = ({ currentTab, onNavigate }) => {
         className={`tool-square-btn ${currentTab === 'cart' ? 'active' : ''}`}
         onClick={() => onNavigate('cart')}
         aria-label="Giỏ hàng"
+        title={`Giỏ hàng ${totalItems > 0 ? `(${totalItems})` : ''}`}
       >
         <IconCart size={22} />
         {totalItems > 0 && <span className="tool-badge">{totalItems > 99 ? '99+' : totalItems}</span>}
@@ -71,6 +75,7 @@ export const CustomerBottomDock = ({ currentTab, onNavigate }) => {
         className={`tool-square-btn ${currentTab === 'profile' ? 'active' : ''}`}
         onClick={() => onNavigate(isAuthenticated ? 'profile' : 'login')}
         aria-label="Hồ sơ cá nhân"
+        title={isAuthenticated ? (user?.fullName || user?.username || 'Hồ sơ cá nhân') : 'Đăng nhập'}
       >
         <IconUser size={22} />
         <span className="dock-tooltip dock-tooltip-top">
@@ -78,16 +83,30 @@ export const CustomerBottomDock = ({ currentTab, onNavigate }) => {
         </span>
       </button>
 
-      {/* 6. Nút Admin chuyển nhanh (Không viền vàng, đồng bộ chuẩn Hình 2) */}
+      {/* 6. Nút Admin / Barista chuyển nhanh */}
       {isAdmin && (
         <button
           type="button"
           className={`tool-square-btn ${currentTab === 'admin' ? 'active' : ''}`}
           onClick={() => onNavigate('admin')}
           aria-label="Quản trị Admin"
+          title="Quản trị Admin"
         >
           <IconShield size={22} />
           <span className="dock-tooltip dock-tooltip-top">Quản trị Admin</span>
+        </button>
+      )}
+
+      {isBarista && !isAdmin && (
+        <button
+          type="button"
+          className={`tool-square-btn ${currentTab === 'admin' ? 'active' : ''}`}
+          onClick={() => onNavigate('admin')}
+          aria-label="Quầy Barista"
+          title="Quầy Barista (Xác nhận đơn)"
+        >
+          <IconShield size={22} />
+          <span className="dock-tooltip dock-tooltip-top">Quầy Barista (Xác nhận đơn)</span>
         </button>
       )}
     </div>
