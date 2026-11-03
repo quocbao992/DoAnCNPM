@@ -135,8 +135,8 @@ public class IProductService implements ProductService {
         Product saved = productRepository.save(product);
 
         // Tạo dòng tồn kho trong inventory_product (ghi log nếu có tồn đầu kỳ > 0)
-        int initialStock = request.getStock() == null ? 0 : request.getStock();
-        productInventoryService.setStock(saved.getId(), initialStock, "INITIAL_STOCK");
+        //int initialStock = request.getStock() == null ? 0 : request.getStock();
+        productInventoryService.setStock(saved.getId(), 0, "INITIAL_STOCK");
 
         return convertToResponse(saved);
     }
@@ -176,14 +176,14 @@ public class IProductService implements ProductService {
             product.setStatus(request.getStatus());
         }
 
-        validateStock(request.getStock());
+        //validateStock(request.getStock());
 
         Product saved = productRepository.save(product);
 
         // Chỉ chỉnh tồn kho khi request có gửi stock
-        if (request.getStock() != null) {
-            productInventoryService.setStock(productId, request.getStock(), "ADMIN_UPDATE");
-        }
+        //if (request.getStock() != null) {
+        //    productInventoryService.setStock(productId, request.getStock(), "ADMIN_UPDATE");
+        //}
 
         return convertToResponse(saved);
     }
