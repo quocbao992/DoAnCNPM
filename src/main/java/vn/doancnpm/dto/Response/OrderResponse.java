@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.doancnpm.domain.Order;
-import vn.doancnpm.domain.Payment;
 
 @Getter
 @Setter
