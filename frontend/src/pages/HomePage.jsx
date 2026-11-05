@@ -3,6 +3,7 @@ import { productApi } from '../api';
 import ProductCard from '../components/common/ProductCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import WeatherWidget from '../components/common/WeatherWidget';
+import ChiikawaMascot from '../components/common/ChiikawaMascot';
 import { localImages } from '../images';
 
 export const HomePage = ({ onNavigate }) => {
@@ -80,7 +81,15 @@ export const HomePage = ({ onNavigate }) => {
         </div>
       </section>
 
-      <section className="container" style={{ padding: '60px 24px' }}>
+      <section className="container" style={{ padding: '40px 24px 60px' }}>
+        {/* Bé mascot Chiikawa hướng dẫn đặt món */}
+        <ChiikawaMascot
+          character="chiikawa"
+          message="Bạn có thể chọn topping và size khi ấn đặt món"
+          actionText="Khám phá thực đơn"
+          onActionClick={() => onNavigate('menu')}
+        />
+
         <div
           style={{
             display: 'flex',

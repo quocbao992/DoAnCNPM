@@ -8,11 +8,19 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class RegisterRequest {
 
     @NotBlank(message = "Tên đăng nhập không được để trống")
-    @Size(min = 3,message = "Tên đăng nhập phải có ít nhất 3 ký tự")
+    @Size(min = 3, message = "Tên đăng nhập phải có ít nhất 3 ký tự")
     @Size(max = 100, message = "Tên đăng nhập không hợp lệ")
     private String username;
 
@@ -24,7 +32,11 @@ public class RegisterRequest {
     private String password;
 
     @NotBlank(message = "Họ tên không được để trống")
-    @Size(max = 100, message = "Họ tên không được vượt quá 100 ký tự")
+    @Size(min = 2, max = 100, message = "Họ tên phải có từ 2 đến 100 ký tự")
+    @Pattern(
+        regexp = "^[\\p{L}\\s]+$",
+        message = "Họ và tên chỉ được chứa chữ cái và khoảng trắng, không được chứa số hoặc ký tự đặc biệt"
+    )
     private String fullName;
 
     @NotBlank(message = "Email không được để trống")
@@ -45,63 +57,4 @@ public class RegisterRequest {
 
     @NotNull(message = "Giới tính không được để trống")
     private Boolean gender;
-
-    public RegisterRequest() {
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public LocalDate getDateOfBirth() {
-        return dateOfBirth;
-    }
-
-    public void setDateOfBirth(LocalDate dateOfBirth) {
-        this.dateOfBirth = dateOfBirth;
-    }
-
-    public Boolean getGender() {
-        return gender;
-    }
-
-    public void setGender(Boolean gender) {
-        this.gender = gender;
-    }
 }

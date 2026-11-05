@@ -25,6 +25,10 @@ public class UserRequest {
         max = 100,
         message = "Họ tên phải có từ 2 đến 100 ký tự"
     )
+    @Pattern(
+        regexp = "^[\\p{L}\\s]+$",
+        message = "Họ và tên chỉ được chứa chữ cái và khoảng trắng, không được chứa số hoặc ký tự đặc biệt"
+    )
     private String fullName;
 
     @Email(message = "Email không đúng định dạng")

@@ -4,6 +4,7 @@ import { formatService } from '../services/formatService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import WeatherWidget from '../components/common/WeatherWidget';
 import { useAuth } from '../context/AuthContext';
+import { IconLock } from '../components/common/Icons';
 
 // Helper trích xuất mảng an toàn tuyệt đối
 const safeExtractArray = (res) => {
@@ -61,6 +62,20 @@ export const AdminPortalPage = ({ activeTab = 'dashboard', onNavigate }) => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [users, setUsers] = useState([]);
   const [userRoleFilter, setUserRoleFilter] = useState('ALL');
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [userToLock, setUserToLock] = useState(null);
+  const [newUserForm, setNewUserForm] = useState({
+    username: '',
+    password: '',
+    fullName: '',
+    email: '',
+    phone: '',
+    role: 'BARISTA',
+    dobDay: '01',
+    dobMonth: '01',
+    dobYear: '2000',
+    gender: true,
+  });
 
   // 6. Quản lý Khuyến mãi (Promotions)
   const [promotions, setPromotions] = useState([]);
@@ -519,6 +534,65 @@ export const AdminPortalPage = ({ activeTab = 'dashboard', onNavigate }) => {
     }
   };
 
+  // Quản lý người dùng: Khóa / Mở khóa tài khoản
+  const handleToggleLockUser = async (u) => {
+    try {
+      const nextStatus = !u.status;
+      await userApi.adminUpdateStatus(u.id, nextStatus);
+      setUserToLock(null);
+      showNotification(`${nextStatus ? 'Mở khóa' : 'Khóa'} tài khoản ${u.username} thành công!`);
+      loadDataForTab('users');
+    } catch (err) {
+      showNotification(err.message || 'Cập nhật trạng thái người dùng thất bại', 'error');
+    }
+  };
+
+  // Quản lý người dùng: Tạo tài khoản mới (hỗ trợ tất cả role)
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    const nameVal = newUserForm.fullName.trim();
+    if (!newUserForm.username.trim() || !newUserForm.password || !nameVal || !newUserForm.email.trim()) {
+      showNotification('Vui lòng điền đầy đủ các thông tin bắt buộc.', 'error');
+      return;
+    }
+    const nameRegex = /^[\p{L}\s]+$/u;
+    if (!nameRegex.test(nameVal) || nameVal.length < 2) {
+      showNotification('Họ và tên không hợp lệ (không được chứa chữ số hoặc ký tự đặc biệt).', 'error');
+      return;
+    }
+    try {
+      const formattedDob = `${newUserForm.dobYear}-${String(newUserForm.dobMonth).padStart(2, '0')}-${String(newUserForm.dobDay).padStart(2, '0')}`;
+      const payload = {
+        username: newUserForm.username.trim(),
+        password: newUserForm.password,
+        fullName: nameVal,
+        email: newUserForm.email.trim().toLowerCase(),
+        phone: newUserForm.phone.trim(),
+        role: newUserForm.role,
+        dateOfBirth: formattedDob,
+        gender: Boolean(newUserForm.gender),
+      };
+      await userApi.adminCreateUser(payload);
+      setShowCreateUserModal(false);
+      setNewUserForm({
+        username: '',
+        password: '',
+        fullName: '',
+        email: '',
+        phone: '',
+        role: 'BARISTA',
+        dobDay: '01',
+        dobMonth: '01',
+        dobYear: '2000',
+        gender: true,
+      });
+      showNotification(`Tạo tài khoản ${payload.username} (${payload.role}) thành công!`);
+      loadDataForTab('users');
+    } catch (err) {
+      showNotification(err.message || 'Tạo tài khoản thất bại.', 'error');
+    }
+  };
+
   const safeOrders = safeExtractArray(orders);
   const safeProducts = safeExtractArray(products);
   const safeCategories = safeExtractArray(categories);
@@ -760,24 +834,14 @@ export const AdminPortalPage = ({ activeTab = 'dashboard', onNavigate }) => {
                             )}
 
                             {isPaid && (
-                              <>
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-primary"
-                                  onClick={() => handleUpdateOrderStatus(order.id, 'PREPARING', 'PAID')}
-                                  style={{ flex: 1, padding: '8px', fontWeight: 700 }}
-                                >
-                                  Xác nhận và pha chế
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-secondary"
-                                  onClick={() => handleCancelOrder(order.id)}
-                                  style={{ color: '#ef4444', padding: '8px' }}
-                                >
-                                  Hủy
-                                </button>
-                              </>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-primary"
+                                onClick={() => handleUpdateOrderStatus(order.id, 'PREPARING', 'PAID')}
+                                style={{ flex: 1, padding: '8px', fontWeight: 700 }}
+                              >
+                                Xác nhận và pha chế
+                              </button>
                             )}
 
                             {isPreparing && (
@@ -1073,7 +1137,7 @@ export const AdminPortalPage = ({ activeTab = 'dashboard', onNavigate }) => {
                             </td>
                             <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                               <button
-                                className="btn btn-sm btn-secondary"
+                                className="btn btn-sm btn-outline"
                                 onClick={() => handleToggleToppingStatus(tp)}
                                 style={{ padding: '4px 10px', borderRadius: '6px' }}
                               >
@@ -1294,12 +1358,16 @@ export const AdminPortalPage = ({ activeTab = 'dashboard', onNavigate }) => {
                                   borderRadius: '6px',
                                   fontSize: '0.78rem',
                                   fontWeight: 600,
-                                  background: log.changeType?.includes('CHUYỂN')
+                                  background: log.changeType?.includes('HOÀN') || log.changeType?.includes('HỦY')
+                                    ? '#fef3c7'
+                                    : log.changeType?.includes('CHUYỂN')
                                     ? '#eff6ff'
                                     : log.changeType?.includes('NHẬP')
                                     ? '#f0fdf4'
                                     : '#fef2f2',
-                                  color: log.changeType?.includes('CHUYỂN')
+                                  color: log.changeType?.includes('HOÀN') || log.changeType?.includes('HỦY')
+                                    ? '#b45309'
+                                    : log.changeType?.includes('CHUYỂN')
                                     ? '#1d4ed8'
                                     : log.changeType?.includes('NHẬP')
                                     ? '#15803d'
@@ -1898,17 +1966,29 @@ export const AdminPortalPage = ({ activeTab = 'dashboard', onNavigate }) => {
           {/* ==================== 7. QUẢN LÝ NGƯỜI DÙNG ==================== */}
           {activeTab === 'users' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                {['ALL', 'ADMIN', 'BARISTA', 'CASHIER', 'CUSTOMER'].map((r) => (
-                  <button
-                    key={r}
-                    className={`btn btn-sm ${userRoleFilter === r ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => setUserRoleFilter(r)}
-                    style={{ borderRadius: '8px', padding: '6px 14px' }}
-                  >
-                    {r === 'ALL' ? 'Tất cả vai trò' : r}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {['ALL', 'ADMIN', 'BARISTA', 'CASHIER', 'CUSTOMER'].map((r) => (
+                    <button
+                      key={r}
+                      className={`btn btn-sm ${userRoleFilter === r ? 'btn-primary' : 'btn-secondary'}`}
+                      onClick={() => setUserRoleFilter(r)}
+                      style={{ borderRadius: '8px', padding: '6px 14px' }}
+                    >
+                      {r === 'ALL' ? 'Tất cả vai trò' : r}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Nút Tạo tài khoản mới */}
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setShowCreateUserModal(true)}
+                  style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600 }}
+                >
+                  + Tạo tài khoản mới
+                </button>
               </div>
 
               <div style={{ background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
@@ -1918,14 +1998,16 @@ export const AdminPortalPage = ({ activeTab = 'dashboard', onNavigate }) => {
                       <th style={{ padding: '12px 16px' }}>Tên tài khoản</th>
                       <th style={{ padding: '12px 16px' }}>Họ và tên</th>
                       <th style={{ padding: '12px 16px' }}>Email</th>
+                      <th style={{ padding: '12px 16px' }}>Số điện thoại</th>
                       <th style={{ padding: '12px 16px' }}>Vai trò</th>
                       <th style={{ padding: '12px 16px' }}>Trạng thái</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center' }}>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {safeUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
+                        <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
                           Chưa có tài khoản người dùng nào
                         </td>
                       </tr>
@@ -1937,15 +2019,54 @@ export const AdminPortalPage = ({ activeTab = 'dashboard', onNavigate }) => {
                             <td style={{ padding: '12px 16px', fontWeight: 600 }}>{u.username}</td>
                             <td style={{ padding: '12px 16px' }}>{u.fullName || '---'}</td>
                             <td style={{ padding: '12px 16px', color: '#64748b' }}>{u.email}</td>
+                            <td style={{ padding: '12px 16px', color: '#64748b' }}>{u.phone || '---'}</td>
                             <td style={{ padding: '12px 16px' }}>
                               <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.8rem', background: '#eff6ff', color: '#1d4ed8', fontWeight: 600 }}>
                                 {u.role}
                               </span>
                             </td>
                             <td style={{ padding: '12px 16px' }}>
-                              <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.8rem', background: u.status ? '#f0fdf4' : '#fef2f2', color: u.status ? '#166534' : '#991b1b' }}>
+                              <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.8rem', background: u.status ? '#f0fdf4' : '#fef2f2', color: u.status ? '#166534' : '#991b1b', fontWeight: 600 }}>
                                 {u.status ? 'Đang hoạt động' : 'Bị khóa'}
                               </span>
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                              {u.status ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setUserToLock(u)}
+                                  style={{
+                                    padding: '5px 12px',
+                                    borderRadius: '6px',
+                                    background: '#dc2626',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    fontWeight: 700,
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 4px rgba(220, 38, 38, 0.25)',
+                                  }}
+                                >
+                                  Khóa
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleLockUser(u)}
+                                  style={{
+                                    padding: '5px 12px',
+                                    borderRadius: '6px',
+                                    background: '#16a34a',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    fontWeight: 600,
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Mở khóa
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))
@@ -1953,6 +2074,294 @@ export const AdminPortalPage = ({ activeTab = 'dashboard', onNavigate }) => {
                   </tbody>
                 </table>
               </div>
+
+              {/* MODAL XÁC NHẬN KHÓA TÀI KHOẢN (Mục 8 - Nút in đỏ) */}
+              {userToLock && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '16px',
+                  }}
+                  onClick={() => setUserToLock(null)}
+                >
+                  <div
+                    style={{
+                      background: '#fff',
+                      borderRadius: '16px',
+                      padding: '28px 24px',
+                      maxWidth: '420px',
+                      width: '100%',
+                      textAlign: 'center',
+                      boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div
+                      style={{
+                        width: '50px',
+                        height: '50px',
+                        borderRadius: '50%',
+                        background: '#fee2e2',
+                        color: '#dc2626',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 14px',
+                      }}
+                    >
+                      <IconLock size={28} color="#dc2626" />
+                    </div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 8px' }}>
+                      Xác nhận khóa tài khoản?
+                    </h3>
+                    <p style={{ color: '#64748b', fontSize: '0.92rem', margin: '0 0 24px', lineHeight: 1.5 }}>
+                      Bạn có chắc chắn muốn khóa tài khoản <strong>{userToLock.username}</strong> ({userToLock.fullName || userToLock.role}) không? Sau khi khóa, người dùng sẽ không thể đăng nhập.
+                    </p>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setUserToLock(null)}
+                        style={{ flex: 1, padding: '10px' }}
+                      >
+                        Hủy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleLockUser(userToLock)}
+                        style={{
+                          flex: 1,
+                          padding: '10px',
+                          borderRadius: '8px',
+                          background: '#dc2626',
+                          color: '#fff',
+                          border: 'none',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Khóa tài khoản
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL TẠO TÀI KHOẢN MỚI (Mục 8 - Hỗ trợ đầy đủ role & thông tin) */}
+              {showCreateUserModal && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '16px',
+                  }}
+                  onClick={() => setShowCreateUserModal(false)}
+                >
+                  <div
+                    style={{
+                      background: '#fff',
+                      borderRadius: '16px',
+                      maxWidth: '520px',
+                      width: '100%',
+                      maxHeight: '90vh',
+                      overflowY: 'auto',
+                      padding: '28px',
+                      boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+                      <h3 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0 }}>
+                        Tạo Tài Khoản Người Dùng Mới
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateUserModal(false)}
+                        style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#64748b' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                            Tên đăng nhập (Username) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="VD: barista_nam"
+                            value={newUserForm.username}
+                            onChange={(e) => setNewUserForm({ ...newUserForm, username: e.target.value })}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border)', boxSizing: 'border-box' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                            Mật khẩu khởi tạo *
+                          </label>
+                          <input
+                            type="password"
+                            required
+                            placeholder="Mật khẩu tối thiểu 8 ký tự"
+                            value={newUserForm.password}
+                            onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border)', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                            Họ và tên *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="VD: Nguyễn Văn Nam"
+                            value={newUserForm.fullName}
+                            onChange={(e) => setNewUserForm({ ...newUserForm, fullName: e.target.value })}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border)', boxSizing: 'border-box' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                            Vai trò (Role) *
+                          </label>
+                          <select
+                            value={newUserForm.role}
+                            onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value })}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border)', background: '#fff', boxSizing: 'border-box', fontWeight: 600 }}
+                          >
+                            <option value="BARISTA">BARISTA (Pha chế)</option>
+                            <option value="CASHIER">CASHIER (Thu ngân)</option>
+                            <option value="CUSTOMER">CUSTOMER (Khách hàng)</option>
+                            <option value="ADMIN">ADMIN (Quản trị viên)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                            Email *
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            placeholder="nam@brewlite.vn"
+                            value={newUserForm.email}
+                            onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border)', boxSizing: 'border-box' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                            Số điện thoại
+                          </label>
+                          <input
+                            type="tel"
+                            placeholder="0912345678"
+                            value={newUserForm.phone}
+                            onChange={(e) => setNewUserForm({ ...newUserForm, phone: e.target.value })}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border)', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Ngày sinh & Giới tính */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                            Ngày sinh (Ngày / Tháng / Năm)
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.3fr', gap: '6px' }}>
+                            <input
+                              type="text"
+                              maxLength={2}
+                              placeholder="01"
+                              value={newUserForm.dobDay}
+                              onChange={(e) => setNewUserForm({ ...newUserForm, dobDay: e.target.value })}
+                              style={{ textAlign: 'center', padding: '8px 4px', borderRadius: '6px', border: '1px solid var(--color-border)' }}
+                            />
+                            <input
+                              type="text"
+                              list="admin-user-dob-months"
+                              placeholder="01"
+                              value={newUserForm.dobMonth}
+                              onChange={(e) => setNewUserForm({ ...newUserForm, dobMonth: e.target.value })}
+                              style={{ textAlign: 'center', padding: '8px 4px', borderRadius: '6px', border: '1px solid var(--color-border)' }}
+                            />
+                            <datalist id="admin-user-dob-months">
+                              {Array.from({ length: 12 }, (_, i) => {
+                                const m = String(i + 1).padStart(2, '0');
+                                return <option key={m} value={m}>{`Tháng ${m}`}</option>;
+                              })}
+                            </datalist>
+                            <input
+                              type="text"
+                              maxLength={4}
+                              placeholder="2000"
+                              value={newUserForm.dobYear}
+                              onChange={(e) => setNewUserForm({ ...newUserForm, dobYear: e.target.value })}
+                              style={{ textAlign: 'center', padding: '8px 4px', borderRadius: '6px', border: '1px solid var(--color-border)' }}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                            Giới tính
+                          </label>
+                          <select
+                            value={newUserForm.gender ? 'true' : 'false'}
+                            onChange={(e) => setNewUserForm({ ...newUserForm, gender: e.target.value === 'true' })}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border)', background: '#fff', boxSizing: 'border-box' }}
+                          >
+                            <option value="true">Nam</option>
+                            <option value="false">Nữ</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => setShowCreateUserModal(false)}
+                          style={{ flex: 1, padding: '10px' }}
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn btn-primary"
+                          style={{ flex: 1, padding: '10px', fontWeight: 600 }}
+                        >
+                          Tạo tài khoản
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

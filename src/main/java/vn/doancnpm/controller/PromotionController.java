@@ -29,11 +29,18 @@ import vn.doancnpm.service.PromotionService;
 public class PromotionController {
     private final PromotionService promotionService;
 
-    // GET /api/promotions/validate?code=GIAM10&amount=200000  -> số tiền được giảm
+    // GET /api/promotions/validate?code=GIAM10&amount=200000  -> số tiền được giảm và thông tin chi tiết
     @GetMapping("/validate")
-    public ResponseEntity<BigDecimal> validate(@RequestParam String code,
-                                               @RequestParam BigDecimal amount) {
-        return ResponseEntity.ok(promotionService.calculateDiscount(code, amount));
+    public ResponseEntity<Map<String, Object>> validate(@RequestParam String code,
+                                                        @RequestParam BigDecimal amount) {
+        BigDecimal discount = promotionService.calculateDiscount(code, amount);
+        PromotionResponse p = promotionService.getByCode(code);
+        return ResponseEntity.ok(Map.of(
+            "discountAmount", discount,
+            "code", p.getCode(),
+            "discountType", p.getDiscountType() != null ? p.getDiscountType() : "FIXED",
+            "discountValue", p.getDiscountValue() != null ? p.getDiscountValue() : BigDecimal.ZERO
+        ));
     }
 
     // GET /api/promotions -> danh sách khuyến mãi

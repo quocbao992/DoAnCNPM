@@ -17,6 +17,16 @@ export const LoginPage = ({ onNavigate, initialNotice = '' }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (!username.trim()) {
+      setErrorMsg('Vui lòng nhập tên đăng nhập.');
+      return;
+    }
+    if (!password) {
+      setErrorMsg('Vui lòng nhập mật khẩu.');
+      return;
+    }
+
     setLoading(true);
 
     const result = await login(username, password);
@@ -86,14 +96,13 @@ export const LoginPage = ({ onNavigate, initialNotice = '' }) => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form noValidate onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Tên đăng nhập</label>
             <input
               type="text"
               className="form-input"
               placeholder="Nhập username"
-              required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
@@ -105,7 +114,6 @@ export const LoginPage = ({ onNavigate, initialNotice = '' }) => {
               type="password"
               className="form-input"
               placeholder="Nhập mật khẩu"
-              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />

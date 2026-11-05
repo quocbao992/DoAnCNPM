@@ -151,17 +151,19 @@ export const CartProvider = ({ children }) => {
         const newSize = updates.size !== undefined ? updates.size : item.size;
         const newNote = updates.note !== undefined ? updates.note : item.note;
         const newQty = updates.quantity !== undefined ? updates.quantity : item.quantity;
+        const newToppings = updates.toppings !== undefined ? updates.toppings : (item.toppings || []);
         const base =
           item.baseUnitPrice !== undefined
             ? item.baseUnitPrice
             : item.unitPrice - (item.size === 'L' ? 10000 : item.size === 'M' ? 5000 : 0);
         const sizeExtra = newSize === 'L' ? 10000 : newSize === 'M' ? 5000 : 0;
-        const toppingsExtra = (item.toppings || []).reduce((sum, t) => sum + (Number(t.unitPrice) || 0), 0);
+        const toppingsExtra = (newToppings || []).reduce((sum, t) => sum + (Number(t.price || t.unitPrice) || 0), 0);
         const newUnitPrice = Math.max(0, base + sizeExtra + toppingsExtra);
         return {
           ...item,
           size: newSize,
           note: newNote,
+          toppings: newToppings,
           quantity: newQty,
           baseUnitPrice: base,
           unitPrice: newUnitPrice,

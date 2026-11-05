@@ -2,9 +2,8 @@ package vn.doancnpm.controller;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,63 +14,61 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClient;
+
+import lombok.RequiredArgsConstructor;
+import vn.doancnpm.domain.Payment;
+import vn.doancnpm.dto.Request.PaymentNotifyRequest;
+import vn.doancnpm.service.PaymentService;
 
 @RestController
 @RequestMapping("/mock-gateway")
+@RequiredArgsConstructor
 public class MockGatewayController {
 
     private static final Logger log = LoggerFactory.getLogger(MockGatewayController.class);
 
-    @Value("${mock.gateway.delay-ms:500}")
-    private long delayMs;
+    private final PaymentService paymentService;
+
     @Value("${mock.gateway.success-rate:0.6}")
     private double successRate;
-    @Value("${mock.gateway.base-url:http://localhost:8081}")
-    private String baseUrl;
-    @Value("${payment.gateway.secret:mock-secret}")
-    private String secret;
-
-    private final RestClient restClient = RestClient.create();
 
     @RequestMapping(value = "/pay", method = { RequestMethod.GET, RequestMethod.POST })
     public ResponseEntity<?> pay(
             @RequestParam Long orderId,
             @RequestParam(required = false) String amount,
-            @RequestParam String method,
-            @RequestParam String ref,
+            @RequestParam(required = false, defaultValue = "VNPay") String method,
+            @RequestParam(required = false) String ref,
             @RequestParam(required = false) String result,
             @RequestHeader(value = "Accept", required = false) String acceptHeader) {
 
+        // Xác định kết quả mô phỏng (tỉ lệ 60% SUCCESS / 40% FAILED)
         String status = (result != null && !result.isBlank())
                 ? result.trim().toUpperCase()
                 : (ThreadLocalRandom.current().nextDouble() < successRate ? "SUCCESS" : "FAILED");
         String transactionId = "MOCK-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String safeRef = (ref != null && !ref.isBlank()) ? ref : ("REF-" + System.currentTimeMillis() + "-" + orderId);
 
-        Map<String, Object> body = Map.of(
-                "orderId", orderId,
-                "transactionId", transactionId,
-                "status", status,
-                "idempotencyKey", ref,
-                "method", method);
-
-        CompletableFuture.runAsync(() -> {
-            try {
-                restClient.post()
-                        .uri(baseUrl + "/api/v1/payments/notify")
-                        .header("X-Gateway-Secret", secret)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(body)
-                        .retrieve()
-                        .toBodilessEntity();
-                log.info("Mock gateway đã báo order {} = {}", orderId, status);
-            } catch (Exception e) {
-                log.error("Mock gateway báo về backend thất bại: {}", e.getMessage());
+        // Ánh xạ an toàn enum Payment.Method
+        Payment.Method payMethod = Payment.Method.VNPay;
+        if (method != null) {
+            for (Payment.Method m : Payment.Method.values()) {
+                if (m.name().equalsIgnoreCase(method.trim())) {
+                    payMethod = m;
+                    break;
+                }
             }
-        }, CompletableFuture.delayedExecutor(delayMs, TimeUnit.MILLISECONDS));
+        }
 
-        // Nếu mở từ trình duyệt (Accept text/html) thì trả về giao diện thanh toán HTML
-        // trực quan
+        // Cập nhật trạng thái thanh toán trực tiếp qua PaymentService
+        try {
+            PaymentNotifyRequest notifyRq = new PaymentNotifyRequest(orderId, transactionId, status, safeRef, payMethod);
+            paymentService.handleNotify(notifyRq);
+            log.info("Mock gateway đã cập nhật thành công đơn #{} sang trạng thái {}", orderId, status);
+        } catch (Exception e) {
+            log.warn("Mock gateway ghi nhận thông báo đơn #{}: {}", orderId, e.getMessage());
+        }
+
+        // Nếu mở từ trình duyệt (Accept text/html) thì trả về giao diện thanh toán HTML trực quan
         if (acceptHeader != null && acceptHeader.contains("text/html")) {
             boolean isSuccess = "SUCCESS".equalsIgnoreCase(status);
             String badgeBg = isSuccess ? "#dcfce7" : "#fee2e2";
@@ -106,7 +103,7 @@ public class MockGatewayController {
                     "<div style=\"background: #f8fafc; padding: 16px; border-radius: 10px; margin: 16px 0; text-align: left;\">");
             sb.append("<div class=\"info-row\"><span>Mã đơn:</span><strong>#BL").append(orderId)
                     .append("</strong></div>");
-            sb.append("<div class=\"info-row\"><span>Cổng:</span><strong>").append(method).append("</strong></div>");
+            sb.append("<div class=\"info-row\"><span>Cổng:</span><strong>").append(payMethod).append("</strong></div>");
             sb.append("<div class=\"info-row\"><span>Mã giao dịch:</span><strong>").append(transactionId)
                     .append("</strong></div>");
             sb.append("<div class=\"info-row\"><span>Trạng thái:</span><strong style=\"color: ").append(statusColor)
@@ -119,11 +116,11 @@ public class MockGatewayController {
             return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(sb.toString());
         }
 
-        return ResponseEntity.accepted().body(Map.of(
-                "message", "Đang xử lý thanh toán...",
+        return ResponseEntity.ok().body(Map.of(
+                "message", "Xác nhận thanh toán thành công",
                 "orderId", orderId,
                 "transactionId", transactionId,
                 "simulatedResult", status,
-                "willNotifyInMs", delayMs));
+                "status", status));
     }
 }

@@ -354,3 +354,37 @@ export const IconPromotion = ({ size = 22, color = 'currentColor' }) => (
     <path d="M13 11v2" />
   </svg>
 );
+
+// 20. Icon Khóa tài khoản (Lock) đồng bộ style với các icon thanh bên trái
+export const IconLock = ({ size = 22, color = 'currentColor' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
+// 21. Icon Mũi tên quay lại (Arrow Left) đơn giản
+export const IconArrowLeft = ({ size = 20, color = 'currentColor' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
+  </svg>
+);

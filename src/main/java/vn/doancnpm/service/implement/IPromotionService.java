@@ -75,6 +75,14 @@ public class IPromotionService implements PromotionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PromotionResponse getByCode(String code) {
+        Promotion p = repo.findByCode(code.trim().toUpperCase())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy mã khuyến mãi: " + code));
+        return mapToResponse(p);
+    }
+
+    @Override
     public PromotionResponse createPromotion(PromotionRequest req) {
         String cleanCode = req.getCode().trim().toUpperCase();
         if (repo.existsByCode(cleanCode)) {

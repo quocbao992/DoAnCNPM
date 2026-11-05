@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { productApi, categoryApi } from '../api';
 import ProductCard from '../components/common/ProductCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import ChiikawaMascot from '../components/common/ChiikawaMascot';
 import { formatService } from '../services/formatService';
 
 export const MenuPage = ({ onNavigate }) => {
@@ -208,6 +209,12 @@ export const MenuPage = ({ onNavigate }) => {
           )}
         </div>
       </div>
+
+      {/* Bé mascot Chiikawa hướng dẫn khách hàng */}
+      <ChiikawaMascot
+        character="hachiware"
+        message="Bạn có thể chọn topping và size khi ấn đặt món"
+      />
 
       <div className="category-tabs">
         <button

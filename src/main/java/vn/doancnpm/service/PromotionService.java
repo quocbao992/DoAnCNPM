@@ -8,6 +8,7 @@ import vn.doancnpm.dto.Response.PromotionResponse;
 public interface PromotionService {
     BigDecimal calculateDiscount(String code, BigDecimal subtotal);
     void markUsed(String code);
+    PromotionResponse getByCode(String code);
 
     List<PromotionResponse> getAllPromotions();
     PromotionResponse getPromotionById(Long id);
