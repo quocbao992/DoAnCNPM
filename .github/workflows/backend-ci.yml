@@ -1,4 +1,4 @@
-name: Java CI with Maven Test
+name: Backend Pipeline
 
 on:
   push:
@@ -25,13 +25,13 @@ jobs:
         run: chmod +x ./mvnw
 
       - name: Bước 1 - Install #(Tải thư viện)
-        run: mvn dependency:resolve
+        run: ./mvnw dependency:resolve
 
       - name: Bước 2 - Lint #(Kiểm tra định dạng code)
-        run: mvn checkstyle:check
+        run: ./mvnw checkstyle:check
 
       - name: Bước 3 - Unit Test #(Chạy kiểm thử)
-        run: mvn test
+        run: ./mvnw test
 
       - name: Bước 4 - Build #(Đóng gói ứng dụng)
-        run: mvn clean package -DskipTests
+        run: ./mvnw clean package -DskipTests
