@@ -13,6 +13,7 @@ import vn.doancnpm.domain.User;
 import vn.doancnpm.dto.Request.CustomerRequest;
 import vn.doancnpm.dto.Response.CustomerResponse;
 import vn.doancnpm.repository.CustomerRepository;
+import vn.doancnpm.repository.UserRepository;
 import vn.doancnpm.service.CustomerService;
 
 
@@ -21,6 +22,7 @@ import vn.doancnpm.service.CustomerService;
 @Transactional(readOnly = true)
 public class ICustomerService implements CustomerService {
     private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
 
     private CustomerResponse convertToResponse(Customer customer) {
         User user = customer.getUser();
@@ -36,6 +38,7 @@ public class ICustomerService implements CustomerService {
     }
 
     @Override
+    @Transactional
     public CustomerResponse updateMyProfile(Long userid, CustomerRequest customerRequest) {
         Customer customer = customerRepository.findByUserId(userid).orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khách hàng với user ID: " + userid));
 
@@ -46,12 +49,16 @@ public class ICustomerService implements CustomerService {
         }
 
         User user = customer.getUser();
+        if (user != null) {
+            user.setFullName(customerRequest.getFullName());
+            userRepository.save(user);
+        }
 
-        user.setFullName(customerRequest.getFullName());
         customer.setPhone(customerRequest.getPhone());
         customer.setDate(customerRequest.getDateOfBirth());
         customer.setGender(customerRequest.isGender());
-        customerRepository.save(customer);
+        customer = customerRepository.save(customer);
+
         return convertToResponse(customer);
     }
     

@@ -8,25 +8,27 @@ public class ProductResponse {
     private Long categoryId;
     private String categoryName;
     private String name;
-    //private String imgURL;
+    private String imgURL;
     private Integer stock;
     private BigDecimal unitPrice;
     private boolean status;
+    private Long version;
 
     public ProductResponse() {
     }
 
     public ProductResponse(Long id, Long categoryId, String categoryName, String name,
-                           //String imgURL, 
-                           Integer stock, BigDecimal unitPrice, boolean status) {
+                           String imgURL, 
+                           Integer stock, BigDecimal unitPrice, boolean status, Long version) {
         this.id = id;
         this.categoryId = categoryId;
         this.categoryName = categoryName;
         this.name = name;
-        //this.imgURL = imgURL;
+        this.imgURL = imgURL;
         this.stock = stock;
         this.unitPrice = unitPrice;
         this.status = status;
+        this.version = version;
     }
 
     public Long getId() {
@@ -61,13 +63,13 @@ public class ProductResponse {
         this.name = name;
     }
 
-    //public String getImgURL() {
-    //    return imgURL;
-    //}
+    public String getImgURL() {
+        return imgURL;
+    }
 
-    //public void setImgURL(String imgURL) {
-    //    this.imgURL = imgURL;
-    //}
+    public void setImgURL(String imgURL) {
+        this.imgURL = imgURL;
+    }
 
     public Integer getStock() {
         return stock;
@@ -91,5 +93,13 @@ public class ProductResponse {
 
     public void setStatus(boolean status) {
         this.status = status;
+    }
+
+    public Long getVersion(){
+        return version;
+    }
+
+    public void setVersion(Long version){
+        this.version = version;
     }
 }

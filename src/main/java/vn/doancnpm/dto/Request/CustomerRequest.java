@@ -35,6 +35,9 @@ public class CustomerRequest {
     public boolean isGender() {
         return gender;
     }
+    public boolean getGender() {
+        return gender;
+    }
     public void setGender(boolean gender) {
         this.gender = gender;
     }

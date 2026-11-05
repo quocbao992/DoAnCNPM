@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -75,10 +76,14 @@ public class OrderController {
         return ResponseEntity.ok(orderService.updateStatus(id, rq.getStatus(), rq.getReason()));
     }
 
-    @PutMapping("/{id}/cancel")
-    public ResponseEntity<OrderResponse> cancel(@PathVariable Long id,
-            @Valid @RequestBody CancelOrderRequest rq) {
-        return ResponseEntity.ok(orderService.cancel(id, rq.getReason()));
+    @RequestMapping(value = "/{id}/cancel", method = {RequestMethod.PUT, RequestMethod.POST})
+    public ResponseEntity<OrderResponse> cancel(
+            @PathVariable Long id,
+            @RequestBody(required = false) CancelOrderRequest rq) {
+        String reason = (rq != null && rq.getReason() != null && !rq.getReason().isBlank())
+                ? rq.getReason()
+                : "Khách hàng yêu cầu hủy qua ứng dụng";
+        return ResponseEntity.ok(orderService.cancel(id, reason));
     }
 
     // TẠM để test bằng Postman (PaymentService sẽ gọi confirmOrder khi thanh toán xong)

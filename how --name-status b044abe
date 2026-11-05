@@ -1,0 +1,8 @@
+[33mcommit 7fbe05bbaafdd738d11bbc1b18c3c964b1b169e1[m
+Author: Tien Dat <tiendatcutene@gmail.com>
+Date:   Tue Nov 3 11:30:41 2026 +0700
+
+    them file CI va cau hinh H2
+
+A	.github/workflows/ci.yml
+A	src/test/resources/application.properties
