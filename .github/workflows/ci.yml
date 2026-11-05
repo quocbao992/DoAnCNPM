@@ -1,9 +1,15 @@
-# ==========================================
-  # JOB 1: KIỂM DUYỆT BACKEND (SPRING BOOT)
-  # ==========================================
+name: Java CI with Maven Test
+
+on:
+  push:
+    branches: [ "main", "master", "test-ci-backend" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
   backend-ci:
     runs-on: ubuntu-latest
-    # Đã xóa phần 'defaults' đi vì pom.xml nằm ngay ngoài cùng
+  
 
     steps:
       - name: Lấy mã nguồn về máy ảo
