@@ -2,7 +2,7 @@ name: Backend Pipeline
 
 on:
   push:
-    branches: [ "main", "master", "test-ci-backend" ]
+    branches: [ "main", "master", "TienDat" ]
   pull_request:
     branches: [ "main", "master" ]
 
