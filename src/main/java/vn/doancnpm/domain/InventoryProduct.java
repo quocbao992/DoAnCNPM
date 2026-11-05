@@ -24,24 +24,24 @@ import lombok.Setter;
 @Builder
 public class InventoryProduct {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    // Mỗi sản phẩm chỉ có đúng 1 dòng tồn kho -> unique = true
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false, unique = true)
-    private Product product;
+  // Mỗi sản phẩm chỉ có đúng 1 dòng tồn kho -> unique = true
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "product_id", nullable = false, unique = true)
+  private Product product;
 
-    @Column(name = "stock", nullable = false)
-    @Builder.Default
-    private Integer stock = 0; // Số lượng đang bán (menu/quầy)
+  @Column(name = "stock", nullable = false)
+  @Builder.Default
+  private Integer stock = 0; // Số lượng đang bán (menu/quầy)
 
-    @Column(name = "warehouse_stock", nullable = false)
-    @Builder.Default
-    private Integer warehouseStock = 100; // Số lượng tồn kho lưu trữ
+  @Column(name = "warehouse_stock", nullable = false)
+  @Builder.Default
+  private Integer warehouseStock = 100; // Số lượng tồn kho lưu trữ
 
-    @Column(name = "min_threshold")
-    @Builder.Default
-    private Integer minThreshold = 5; // Cảnh báo khi tồn kho nhỏ hơn mức này
+  @Column(name = "min_threshold")
+  @Builder.Default
+  private Integer minThreshold = 5; // Cảnh báo khi tồn kho nhỏ hơn mức này
 }

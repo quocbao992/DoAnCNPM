@@ -9,6 +9,6 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class ToppingRequest {
-    private String name;
-    private BigDecimal unitPrice;
+  private String name;
+  private BigDecimal unitPrice;
 }

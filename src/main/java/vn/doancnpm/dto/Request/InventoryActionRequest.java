@@ -10,9 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class InventoryActionRequest {
-    private String type;   // "PRODUCT" hoặc "TOPPING"
-    private Long id;       // productId hoặc toppingId
-    private Integer amount;
-    private String reason;
+  private String type; // "PRODUCT" hoặc "TOPPING"
+  private Long id; // productId hoặc toppingId
+  private Integer amount;
+  private String reason;
 }
-

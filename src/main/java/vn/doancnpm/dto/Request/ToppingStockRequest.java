@@ -10,11 +10,11 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class ToppingStockRequest {
-    @NotNull(message = "toppingId không được để trống")
-    private Long toppingId;
+  @NotNull(message = "toppingId không được để trống")
+  private Long toppingId;
 
-    @Positive(message = "Số lượng phải lớn hơn 0")
-    private int amount;
+  @Positive(message = "Số lượng phải lớn hơn 0")
+  private int amount;
 
-    private String reason; // VD: "IMPORT", "DAMAGED", "ORDER_DEDUCT"
+  private String reason; // VD: "IMPORT", "DAMAGED", "ORDER_DEDUCT"
 }

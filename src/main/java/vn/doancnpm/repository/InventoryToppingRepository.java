@@ -7,6 +7,6 @@ import vn.doancnpm.domain.InventoryTopping;
 
 @Repository
 public interface InventoryToppingRepository extends JpaRepository<InventoryTopping, Long> {
-    // Tìm tồn kho của 1 topping cụ thể theo ID topping
-    Optional<InventoryTopping> findByToppingId(Long toppingId);
+  // Tìm tồn kho của 1 topping cụ thể theo ID topping
+  Optional<InventoryTopping> findByToppingId(Long toppingId);
 }

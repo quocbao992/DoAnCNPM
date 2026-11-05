@@ -1,4 +1,4 @@
-/* 
+/*
 package vn.doancnpm.service.implement;
 
 import java.time.LocalDateTime;
@@ -44,10 +44,10 @@ public class IInventoryService implements InventoryService {
 
         if (productId != null) {
             Product product = findProductOrThrow(productId);
-            if (!product.isStatus()) {                                                      
-                throw new IllegalArgumentException(                                         
-                        "Sản phẩm \"" + product.getName() + "\" đã ngừng bán");             
-            }   
+            if (!product.isStatus()) {
+                throw new IllegalArgumentException(
+                        "Sản phẩm \"" + product.getName() + "\" đã ngừng bán");
+            }
             InventoryProduct invProduct = inventoryProductRepository.findByProductId(productId)
                     .orElseThrow(() -> new EntityNotFoundException(
                             "Chưa thiết lập kho cho sản phẩm ID: " + productId
@@ -64,10 +64,10 @@ public class IInventoryService implements InventoryService {
 
         if (toppingId != null) {
             Topping topping = findToppingOrThrow(toppingId);
-            if (!Boolean.TRUE.equals(topping.getStatus())) {                                
-                throw new IllegalArgumentException(                                         
-                        "Topping \"" + topping.getName() + "\" đã ngừng bán");             
-            }    
+            if (!Boolean.TRUE.equals(topping.getStatus())) {
+                throw new IllegalArgumentException(
+                        "Topping \"" + topping.getName() + "\" đã ngừng bán");
+            }
             InventoryTopping invTopping = inventoryToppingRepository.findByToppingId(toppingId)
                     .orElseThrow(() -> new EntityNotFoundException(
                             "Chưa thiết lập kho cho topping ID: " + toppingId

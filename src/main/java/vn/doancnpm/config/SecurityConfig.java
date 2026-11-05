@@ -1,5 +1,3 @@
 package vn.doancnpm.config;
 
-public class SecurityConfig {
-    
-}
+public class SecurityConfig {}

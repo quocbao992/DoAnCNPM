@@ -7,7 +7,7 @@ import vn.doancnpm.dto.Response.InventoryLogResponse;
 import vn.doancnpm.dto.Response.InventoryStockResponse;
 
 public interface InventoryService {
-    
+
     // 1. Trừ tồn kho (Dùng khi khách chốt đơn)
     void deductStock(Long productId, Long toppingId, Order order, int deductAmount);
 

@@ -15,22 +15,20 @@ import vn.doancnpm.domain.Order;
 @AllArgsConstructor
 public class CheckoutRequest {
 
-    @NotNull
-    private Long customerId; // TẠM: sau khi có JWT thì lấy từ token, bỏ field này
+  @NotNull private Long customerId; // TẠM: sau khi có JWT thì lấy từ token, bỏ field này
 
-    @NotNull
-    private Order.OrderType orderType;
+  @NotNull private Order.OrderType orderType;
 
-    private String tableNumber;
+  private String tableNumber;
 
-    private String voucherCode;
+  private String voucherCode;
 
-    @Min(0)
-    private Integer loyaltyPointsUsed;
+  @Min(0)
+  private Integer loyaltyPointsUsed;
 
-    @Size(max = 500)
-    private String note;
+  @Size(max = 500)
+  private String note;
 
-    //@NotNull
-    //private Order.PaymentMethod paymentMethod;
+  // @NotNull
+  // private Order.PaymentMethod paymentMethod;
 }

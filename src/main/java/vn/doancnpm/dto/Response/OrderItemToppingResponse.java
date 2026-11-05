@@ -12,13 +12,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class OrderItemToppingResponse {
-    private Long toppingId;
-    private String name;
-    private int quantity;
-    private BigDecimal unitPrice;
-
+  private Long toppingId;
+  private String name;
+  private int quantity;
+  private BigDecimal unitPrice;
 }
-
-

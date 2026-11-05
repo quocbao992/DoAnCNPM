@@ -10,5 +10,5 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CancelOrderRequest {
-    private String reason;
+  private String reason;
 }

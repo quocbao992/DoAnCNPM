@@ -2,7 +2,7 @@ package vn.doancnpm.dto.Request;
 
 import lombok.Data;
 
-@Data 
+@Data
 public class LogoutRequest {
-    private String refreshToken;
+  private String refreshToken;
 }

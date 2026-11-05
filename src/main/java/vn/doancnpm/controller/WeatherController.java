@@ -12,17 +12,18 @@ import vn.doancnpm.service.WeatherService;
 @RequestMapping("/api/weather")
 public class WeatherController {
 
-    private final WeatherService weatherService;
+  private final WeatherService weatherService;
 
-    public WeatherController(WeatherService weatherService) {
-        this.weatherService = weatherService;
-    }
+  public WeatherController(WeatherService weatherService) {
+    this.weatherService = weatherService;
+  }
 
-    @GetMapping
-    public ResponseEntity<WeatherService.WeatherView> current(@RequestParam(defaultValue = "hcm") String city) {
-        var result = weatherService.current(city);
-        return ResponseEntity.status(result.available() ? 200 : 503)
-                .cacheControl(CacheControl.noStore())
-                .body(result);
-    }
+  @GetMapping
+  public ResponseEntity<WeatherService.WeatherView> current(
+      @RequestParam(defaultValue = "hcm") String city) {
+    var result = weatherService.current(city);
+    return ResponseEntity.status(result.available() ? 200 : 503)
+        .cacheControl(CacheControl.noStore())
+        .body(result);
+  }
 }

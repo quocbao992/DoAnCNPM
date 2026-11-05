@@ -4,99 +4,105 @@ import java.time.LocalDate;
 
 public class CustomerResponse {
 
-    private Long id;
-    private String username;
-    private String email;
-    private String fullName;
-    private String phone;
-    private LocalDate dateOfBirth;
-    private boolean gender;
-    private int loyaltyPoints;
+  private Long id;
+  private String username;
+  private String email;
+  private String fullName;
+  private String phone;
+  private LocalDate dateOfBirth;
+  private boolean gender;
+  private int loyaltyPoints;
 
-    public CustomerResponse() {
-    }
+  public CustomerResponse() {}
 
-    public CustomerResponse(Long id, String username, String email, String fullName, String phone,
-            LocalDate dateOfBirth, boolean gender, int loyaltyPoints) {
-        this.id = id;
-        this.username = username;
-        this.email = email;
-        this.fullName = fullName;
-        this.phone = phone;
-        this.dateOfBirth = dateOfBirth;
-        this.gender = gender;
-        this.loyaltyPoints = loyaltyPoints;
-    }
+  public CustomerResponse(
+      Long id,
+      String username,
+      String email,
+      String fullName,
+      String phone,
+      LocalDate dateOfBirth,
+      boolean gender,
+      int loyaltyPoints) {
+    this.id = id;
+    this.username = username;
+    this.email = email;
+    this.fullName = fullName;
+    this.phone = phone;
+    this.dateOfBirth = dateOfBirth;
+    this.gender = gender;
+    this.loyaltyPoints = loyaltyPoints;
+  }
 
-    public Long getId() {
-        return id;
-    }
+  public Long getId() {
+    return id;
+  }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+  public void setId(Long id) {
+    this.id = id;
+  }
 
-    public String getUsername() {
-        return username;
-    }
+  public String getUsername() {
+    return username;
+  }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+  public void setUsername(String username) {
+    this.username = username;
+  }
 
-    public String getEmail() {
-        return email;
-    }
+  public String getEmail() {
+    return email;
+  }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+  public void setEmail(String email) {
+    this.email = email;
+  }
 
-    public String getFullName() {
-        return fullName;
-    }
+  public String getFullName() {
+    return fullName;
+  }
 
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
+  public void setFullName(String fullName) {
+    this.fullName = fullName;
+  }
 
-    public String getPhone() {
-        return phone;
-    }
+  public String getPhone() {
+    return phone;
+  }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
+  public void setPhone(String phone) {
+    this.phone = phone;
+  }
 
-    public LocalDate getDateOfBirth() {
-        return dateOfBirth;
-    }
+  public LocalDate getDateOfBirth() {
+    return dateOfBirth;
+  }
 
-    public void setDateOfBirth(LocalDate dateOfBirth) {
-        this.dateOfBirth = dateOfBirth;
-    }
+  public void setDateOfBirth(LocalDate dateOfBirth) {
+    this.dateOfBirth = dateOfBirth;
+  }
 
-    public boolean isGender() {
-        return gender;
-    }
+  public boolean isGender() {
+    return gender;
+  }
 
-    public void setGender(boolean gender) {
-        this.gender = gender;
-    }
+  public void setGender(boolean gender) {
+    this.gender = gender;
+  }
 
-    public int getLoyaltyPoints() {
-        return loyaltyPoints;
-    }
+  public int getLoyaltyPoints() {
+    return loyaltyPoints;
+  }
 
-    public void setLoyaltyPoints(int loyaltyPoints) {
-        this.loyaltyPoints = loyaltyPoints;
-    }
+  public void setLoyaltyPoints(int loyaltyPoints) {
+    this.loyaltyPoints = loyaltyPoints;
+  }
 
-    public int getLoyaltyPoint() {
-        return loyaltyPoints;
-    }
+  public int getLoyaltyPoint() {
+    return loyaltyPoints;
+  }
 
-    public void setLoyaltyPoint(int loyaltyPoint) {
-        this.loyaltyPoints = loyaltyPoint;
-    }
+  public void setLoyaltyPoint(int loyaltyPoint) {
+    this.loyaltyPoints = loyaltyPoint;
+  }
 }

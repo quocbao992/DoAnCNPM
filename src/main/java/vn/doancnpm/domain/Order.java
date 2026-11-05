@@ -1,13 +1,5 @@
 package vn.doancnpm.domain;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,89 +13,97 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-@Entity 
-@Table(name = "orders") 
-@AllArgsConstructor 
-@NoArgsConstructor 
-@Getter 
-@Setter 
+@Entity
+@Table(name = "orders")
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
 public class Order {
 
-    @Id 
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-   
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", nullable = false)
-    private Customer customer;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "customer_id", nullable = false)
+  private Customer customer;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private Status status;
-    
-    
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderItem> items;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "status", nullable = false)
+  private Status status;
 
-    public List<OrderItem> getItems() {
-        if (items == null) {
-            items = new ArrayList<>();
-        }
-        return items;
+  @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<OrderItem> items;
+
+  public List<OrderItem> getItems() {
+    if (items == null) {
+      items = new ArrayList<>();
     }
+    return items;
+  }
 
-    @Column(name = "subtotal", nullable = false)
-    private BigDecimal subtotal;
-    
-    @Column(name = "discount_amount", nullable = false)
-    private BigDecimal discountAmount;
+  @Column(name = "subtotal", nullable = false)
+  private BigDecimal subtotal;
 
-    @Column(name = "loyalty_points_used", nullable = false)
-    private int loyaltyPointsUsed;
-    
-    @Column(name = "total_amount", nullable = false)
-    private BigDecimal totalAmount;
+  @Column(name = "discount_amount", nullable = false)
+  private BigDecimal discountAmount;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+  @Column(name = "loyalty_points_used", nullable = false)
+  private int loyaltyPointsUsed;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+  @Column(name = "total_amount", nullable = false)
+  private BigDecimal totalAmount;
 
-    public enum Status {
-        PENDING,
-        PAID,
-        PREPARING,
-        READY,
-        COMPLETED,
-        PAYMENT_FAILED,
-        CANCELLED
-    }
+  @CreationTimestamp
+  @Column(name = "created_at", updatable = false)
+  private LocalDateTime createdAt;
 
-    public enum OrderType { DINE_IN, TAKE_AWAY }
-    //public enum PaymentMethod { VNPAY, MOMO, CASH }
+  @UpdateTimestamp
+  @Column(name = "updated_at")
+  private LocalDateTime updatedAt;
 
-    @Column(unique = true, length = 30)
-    private String orderCode;
+  public enum Status {
+    PENDING,
+    PAID,
+    PREPARING,
+    READY,
+    COMPLETED,
+    PAYMENT_FAILED,
+    CANCELLED
+  }
 
-    @Enumerated(EnumType.STRING)
-    private OrderType orderType;
+  public enum OrderType {
+    DINE_IN,
+    TAKE_AWAY
+  }
 
-    private String tableNumber;
+  // public enum PaymentMethod { VNPAY, MOMO, CASH }
 
-    //@Enumerated(EnumType.STRING)
-    //private Payment paymentMethod;
+  @Column(unique = true, length = 30)
+  private String orderCode;
 
-    @Column(length = 500)
-    private String note;
+  @Enumerated(EnumType.STRING)
+  private OrderType orderType;
 
-    private String cancelReason;
+  private String tableNumber;
+
+  // @Enumerated(EnumType.STRING)
+  // private Payment paymentMethod;
+
+  @Column(length = 500)
+  private String note;
+
+  private String cancelReason;
 }

@@ -13,8 +13,7 @@ import vn.doancnpm.domain.Order;
 @AllArgsConstructor
 public class UpdateOrderStatusRequest {
 
-    @NotNull
-    private Order.Status status;
+  @NotNull private Order.Status status;
 
-    private String reason;
+  private String reason;
 }

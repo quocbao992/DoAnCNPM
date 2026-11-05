@@ -15,14 +15,14 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @Table(name = "topping_log")
 @PrimaryKeyJoinColumn(name = "id_m")
-@Getter 
+@Getter
 @Setter
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ToppingLog extends InventoryLog {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "Id_T", nullable = false)
-    private Topping topping;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "Id_T", nullable = false)
+  private Topping topping;
 }

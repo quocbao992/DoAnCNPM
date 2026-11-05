@@ -7,5 +7,5 @@ import vn.doancnpm.domain.InventoryProduct;
 
 @Repository
 public interface InventoryProductRepository extends JpaRepository<InventoryProduct, Long> {
-    Optional<InventoryProduct> findByProductId(Long productId);
+  Optional<InventoryProduct> findByProductId(Long productId);
 }

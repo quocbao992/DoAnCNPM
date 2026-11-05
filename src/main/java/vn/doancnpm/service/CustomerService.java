@@ -5,10 +5,9 @@ import vn.doancnpm.dto.Response.CustomerResponse;
 
 public interface CustomerService {
 
-    CustomerResponse getMyProfile(Long userId);
+  CustomerResponse getMyProfile(Long userId);
 
-    CustomerResponse updateMyProfile(Long userId,CustomerRequest request);
+  CustomerResponse updateMyProfile(Long userId, CustomerRequest request);
 
-    float getMyLoyalPoint(Long userId);
-
+  float getMyLoyalPoint(Long userId);
 }

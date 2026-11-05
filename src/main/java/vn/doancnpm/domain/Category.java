@@ -12,25 +12,25 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity 
+@Entity
 @Table(name = "Category")
-@AllArgsConstructor 
-@NoArgsConstructor 
-@Getter 
-@Setter 
-@Builder 
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
 public class Category {
-    @Id 
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(name = "name",nullable = false)
-    private String name;
-    
-    @Column(name = "display_order",nullable = false)
-    private Long displayOrder;
-    
-    @Column (name = "status")
-    @Builder .Default
-    private Boolean status = true;
+  @Column(name = "name", nullable = false)
+  private String name;
+
+  @Column(name = "display_order", nullable = false)
+  private Long displayOrder;
+
+  @Column(name = "status")
+  @Builder.Default
+  private Boolean status = true;
 }

@@ -13,16 +13,16 @@ import lombok.Setter;
 @Builder
 public class RegisterResponse {
 
-    private Long id;
-    private String username;
-    private String fullName;
-    private String email;
-    private String role;
+  private Long id;
+  private String username;
+  private String fullName;
+  private String email;
+  private String role;
 
-    public RegisterResponse(Long id, String username, String fullName, String role) {
-        this.id = id;
-        this.username = username;
-        this.fullName = fullName;
-        this.role = role;
-    }
+  public RegisterResponse(Long id, String username, String fullName, String role) {
+    this.id = id;
+    this.username = username;
+    this.fullName = fullName;
+    this.role = role;
+  }
 }
