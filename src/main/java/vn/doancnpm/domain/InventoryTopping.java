@@ -34,11 +34,11 @@ public class InventoryTopping {
 
     @Column(name = "stock", nullable = false)
     @Builder.Default
-    private Integer stock = 0; // Số lượng đang bán
+    private Integer stock = 0;
 
     @Column(name = "warehouse_stock", nullable = false)
     @Builder.Default
-    private Integer warehouseStock = 200; // Số lượng tồn kho lưu trữ
+    private Integer warehouseStock = 0;
 
     @Column(name = "min_threshold")
     @Builder.Default

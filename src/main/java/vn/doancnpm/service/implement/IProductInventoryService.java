@@ -75,7 +75,7 @@ public class IProductInventoryService implements ProductInventoryService {
                     InventoryProduct p = new InventoryProduct();
                     p.setProduct(product);
                     p.setStock(0);
-                    p.setWarehouseStock(100);
+                    p.setWarehouseStock(0);
                     p.setMinThreshold(5);
                     return p;
                 });
@@ -164,7 +164,7 @@ public class IProductInventoryService implements ProductInventoryService {
                         InventoryProduct created = new InventoryProduct();
                         created.setProduct(p);
                         created.setStock(0);
-                        created.setWarehouseStock(100);
+                        created.setWarehouseStock(0);
                         created.setMinThreshold(5);
                         return inventoryProductRepository.save(created);
                     });
@@ -199,12 +199,29 @@ public class IProductInventoryService implements ProductInventoryService {
                     InventoryProduct newInv = new InventoryProduct();
                     newInv.setProduct(productRepository.getReferenceById(productId));
                     newInv.setMinThreshold(5);
-                    newInv.setWarehouseStock(100);
+                    newInv.setWarehouseStock(0);
                     newInv.setStock(0);
                     return newInv;
                 });
 
         inv.setStock(stock);
+        inventoryProductRepository.save(inv);
+    }
+
+    @Override
+    @Transactional
+    public void initInventory(Long productId, int initialWarehouseStock) {
+        InventoryProduct inv = inventoryProductRepository.findByProductId(productId)
+                .orElseGet(() -> {
+                    InventoryProduct newInv = new InventoryProduct();
+                    newInv.setProduct(productRepository.getReferenceById(productId));
+                    newInv.setMinThreshold(5);
+                    newInv.setWarehouseStock(0);
+                    newInv.setStock(0);
+                    return newInv;
+                });
+        inv.setStock(0);
+        inv.setWarehouseStock(initialWarehouseStock > 0 ? initialWarehouseStock : 0);
         inventoryProductRepository.save(inv);
     }
 

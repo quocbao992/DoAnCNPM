@@ -75,7 +75,7 @@ public class IToppingInventoryService implements ToppingInventoryService {
                     InventoryTopping t = new InventoryTopping();
                     t.setTopping(topping);
                     t.setStock(0);
-                    t.setWarehouseStock(200);
+                    t.setWarehouseStock(0);
                     t.setMinThreshold(10);
                     return t;
                 });
@@ -163,7 +163,7 @@ public class IToppingInventoryService implements ToppingInventoryService {
                         InventoryTopping created = new InventoryTopping();
                         created.setTopping(t);
                         created.setStock(0);
-                        created.setWarehouseStock(200);
+                        created.setWarehouseStock(0);
                         created.setMinThreshold(10);
                         return inventoryToppingRepository.save(created);
                     });

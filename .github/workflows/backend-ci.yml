@@ -42,7 +42,7 @@ jobs:
           TEST_COUNT=$(find src/test/java -type f \( -name "*Test*.java" -o -name "*Tests*.java" \) 2>/dev/null | wc -l)
           echo "Số lượng file kiểm thử tìm thấy: $TEST_COUNT"
           if [ "$TEST_COUNT" -eq 0 ]; then
-            echo "❌ [LỖI CI] Không tìm thấy bất kỳ file kiểm thử nào trong thư mục src/test/java!"
+            echo "[LỖI CI] Không tìm thấy bất kỳ file kiểm thử nào trong thư mục src/test/java!"
             echo "Quy tắc bắt buộc: Phải có ít nhất 1 bài Unit Test trước khi đẩy code lên."
             exit 1
           fi

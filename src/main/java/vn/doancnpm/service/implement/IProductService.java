@@ -134,9 +134,8 @@ public class IProductService implements ProductService {
 
         Product saved = productRepository.save(product);
 
-        // Tạo dòng tồn kho trong inventory_product (ghi log nếu có tồn đầu kỳ > 0)
-        int initialStock = request.getStock() == null ? 0 : request.getStock();
-        productInventoryService.setStock(saved.getId(), initialStock, "INITIAL_STOCK");
+        int initialWarehouseStock = request.getStock() == null ? 0 : request.getStock();
+        productInventoryService.initInventory(saved.getId(), initialWarehouseStock);
 
         return convertToResponse(saved);
     }

@@ -28,20 +28,19 @@ public class InventoryProduct {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Mỗi sản phẩm chỉ có đúng 1 dòng tồn kho -> unique = true
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false, unique = true)
     private Product product;
 
     @Column(name = "stock", nullable = false)
     @Builder.Default
-    private Integer stock = 0; // Số lượng đang bán (menu/quầy)
+    private Integer stock = 0;
 
     @Column(name = "warehouse_stock", nullable = false)
     @Builder.Default
-    private Integer warehouseStock = 100; // Số lượng tồn kho lưu trữ
+    private Integer warehouseStock = 0;
 
     @Column(name = "min_threshold")
     @Builder.Default
-    private Integer minThreshold = 5; // Cảnh báo khi tồn kho nhỏ hơn mức này
+    private Integer minThreshold = 5;
 }

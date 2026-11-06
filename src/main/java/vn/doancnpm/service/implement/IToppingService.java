@@ -47,7 +47,6 @@ public class IToppingService implements ToppingService {
     @Override
     @Transactional
     public ToppingResponse createTopping(ToppingRequest request) {
-        // 1. Chuyển từ Request DTO sang Entity Topping
         Topping topping = Topping.builder()
                 .name(request.getName())
                 .unitPrice(request.getUnitPrice())
@@ -55,15 +54,14 @@ public class IToppingService implements ToppingService {
                 .build();
         Topping savedTopping = toppingRepository.save(topping);
 
-        // 2. Khởi tạo tồn kho ban đầu (stock = 0)
         InventoryTopping initialStock = InventoryTopping.builder()
                 .topping(savedTopping)
                 .stock(0)
+                .warehouseStock(0)
                 .minThreshold(10)
                 .build();
         inventoryToppingRepository.save(initialStock);
 
-        // 3. Trả về Response DTO
         return mapToResponse(savedTopping, 0);
     }
 
