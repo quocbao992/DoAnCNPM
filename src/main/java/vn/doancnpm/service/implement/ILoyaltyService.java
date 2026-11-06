@@ -31,7 +31,7 @@ public class ILoyaltyService implements LoyaltyService {
     private static final String REDEEM = "REDEEM";
     private static final String REDEEM_REVERT = "REDEEM_REVERT";
 
-    private final OrderRepository orderRepo;        // chỉ ĐỌC
+    private final OrderRepository orderRepo; // chỉ ĐỌC
     private final CustomerRepository customerRepo;
     private final LoyaltyTransactionRepository txRepo;
 
@@ -68,7 +68,7 @@ public class ILoyaltyService implements LoyaltyService {
 
         int points = order.getLoyaltyPointsUsed();
         if (points <= 0) {
-            return 0;                                   // đơn không dùng điểm
+            return 0; // đơn không dùng điểm
         }
         if (txRepo.existsByOrderIdAndType(orderId, REDEEM)) {
             throw new IllegalStateException("Đơn hàng này đã trừ điểm quy đổi");
@@ -80,18 +80,18 @@ public class ILoyaltyService implements LoyaltyService {
         return points;
     }
 
-    // Cộng điểm thưởng (gọi khi đơn chuyển sang COMPLETED)
+    // Cộng điểm thưởng (gọi khi đơn thanh toán thành công PAID hoặc hoàn tất
+    // COMPLETED)
     @Override
     public int earnPoints(Long orderId) {
         Order order = findOrder(orderId);
-                //.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng"));
 
-        if (order.getStatus() != Order.Status.COMPLETED) {
-        throw new IllegalStateException("Chỉ cộng điểm khi đơn hàng đã hoàn tất");
+        if (order.getStatus() != Order.Status.COMPLETED && order.getStatus() != Order.Status.PAID) {
+            throw new IllegalStateException("Chỉ cộng điểm khi đơn hàng đã thanh toán hoặc hoàn tất");
         }
         if (txRepo.existsByOrderIdAndType(orderId, EARN)) {
-        throw new IllegalStateException("Đơn hàng này đã được cộng điểm");
-    }
+            return 0; // Đã cộng điểm cho đơn này rồi, tránh cộng lặp lại
+        }
 
         int points = calculatePoints(order.getTotalAmount());
         if (points > 0) {
@@ -101,7 +101,8 @@ public class ILoyaltyService implements LoyaltyService {
         return points;
     }
 
-    // Hoàn điểm khi đơn bị hủy. Trả về thay đổi điểm ròng của khách (dương = khách được trả lại)
+    // Hoàn điểm khi đơn bị hủy. Trả về thay đổi điểm ròng của khách (dương = khách
+    // được trả lại)
     @Override
     public int revertPoints(Long orderId) {
          Order order = findOrder(orderId);
@@ -133,6 +134,7 @@ public class ILoyaltyService implements LoyaltyService {
         return net;     // đơn không có điểm nào thì trả 0, không báo lỗi
     }
 
+    
     // ===================== Hàm phụ =====================
     private Order findOrder(Long orderId) {
         return orderRepo.findById(orderId)

@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 import vn.doancnpm.service.ProductInventoryService;
 import vn.doancnpm.service.ToppingInventoryService;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -41,14 +42,13 @@ public class ICheckoutService implements CheckoutService {
     private final CartItemRepository cartItemRepo;
     private final OrderRepository orderRepo;
     private final OrderService orderService;
-    //mới
-    //private final ProductRepository productRepo;cũ
-    //private final InventoryLogRepository inventoryLogRepo;cũ
+    // mới
+    // private final ProductRepository productRepo;cũ
+    // private final InventoryLogRepository inventoryLogRepo;cũ
     private final ProductInventoryService productInventoryService;
     private final ToppingInventoryService toppingInventoryService;
     private final LoyaltyService loyaltyService;
     private final PromotionService promotionService;
-
 
     // Bước 1: chuyển giỏ hàng thành đơn PENDING (chưa trừ kho, chưa đóng giỏ)
     @Override
@@ -58,7 +58,7 @@ public class ICheckoutService implements CheckoutService {
                 .or(() -> customerRepo.findByUserId(customerId))
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin khách hàng"));
         Cart cart = findActiveCart(customer.getId());
-     
+
         if (cart == null) {
             throw new IllegalStateException("Không có giỏ hàng đang dùng");
         }
@@ -66,25 +66,28 @@ public class ICheckoutService implements CheckoutService {
         if (cartItems.isEmpty()) {
             throw new IllegalStateException("Giỏ hàng trống");
         }
-         
-    // Gộp số lượng theo sản phẩm (cùng món nhưng khác size/topping vẫn tính chung 1 kho)
-    /* 
-    Map<Long, Integer> need = new HashMap<>();
-    for (CartItem ci : cartItems) {
-        need.merge(ci.getProduct().getId(), ci.getQuantity(), (a, b) -> a + b);
-    }
-    for (Map.Entry<Long, Integer> e : need.entrySet()) {
-        Product p = productRepo.findById(e.getKey())
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm " + e.getKey()));
-        int stock = p.getStock() == null ? 0 : p.getStock();
-        if (stock < e.getValue()) {
-            throw new IllegalStateException("Không đủ hàng: " + p.getName()
-                    + " (còn " + stock + ", cần " + e.getValue() + ")");
-        }
-    }*/
-        
+
+        // Gộp số lượng theo sản phẩm (cùng món nhưng khác size/topping vẫn tính chung 1
+        // kho)
+        /*
+         * Map<Long, Integer> need = new HashMap<>();
+         * for (CartItem ci : cartItems) {
+         * need.merge(ci.getProduct().getId(), ci.getQuantity(), (a, b) -> a + b);
+         * }
+         * for (Map.Entry<Long, Integer> e : need.entrySet()) {
+         * Product p = productRepo.findById(e.getKey())
+         * .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm " +
+         * e.getKey()));
+         * int stock = p.getStock() == null ? 0 : p.getStock();
+         * if (stock < e.getValue()) {
+         * throw new IllegalStateException("Không đủ hàng: " + p.getName()
+         * + " (còn " + stock + ", cần " + e.getValue() + ")");
+         * }
+         * }
+         */
+
         // Gộp số lượng cần theo sản phẩm và theo topping
-        //mới
+        // mới
         Map<Long, Integer> needProduct = new HashMap<>();
         Map<Long, Integer> needTopping = new HashMap<>();
         for (CartItem ci : cartItems) {
@@ -114,7 +117,6 @@ public class ICheckoutService implements CheckoutService {
         order.setOrderType(rq.getOrderType());
         order.setTableNumber(rq.getTableNumber());
         order.setNote(rq.getNote());
-        
 
         BigDecimal subtotal = BigDecimal.ZERO;
 
@@ -122,11 +124,11 @@ public class ICheckoutService implements CheckoutService {
             OrderItem oi = new OrderItem();
             oi.setOrder(order);
             oi.setProduct(ci.getProduct());
-            oi.setProductName(ci.getProduct().getName());   // sao chép tên lúc đặt
+            oi.setProductName(ci.getProduct().getName()); // sao chép tên lúc đặt
             oi.setProductImage(ci.getProduct().getImgURL()); // sao chép ảnh lúc đặt
             oi.setSize(ci.getSize().name());
             oi.setQuantity(ci.getQuantity());
-            oi.setUnitPrice(ci.getUnitPrice());              // sao chép giá lúc đặt
+            oi.setUnitPrice(ci.getUnitPrice()); // sao chép giá lúc đặt
 
             // topping của 1 ly
             BigDecimal toppingPerUnit = BigDecimal.ZERO;
@@ -145,13 +147,13 @@ public class ICheckoutService implements CheckoutService {
                 }
             }
 
-            //lineTotal = (giá món + topping của 1 ly) x số lượng
+            // lineTotal = (giá món + topping của 1 ly) x số lượng
             oi.setLineTotal(ci.getUnitPrice().add(toppingPerUnit)
-                    .multiply(BigDecimal.valueOf(ci.getQuantity()))); 
+                    .multiply(BigDecimal.valueOf(ci.getQuantity())));
             // (Giá món * số lượng ly) + Tổng tiền topping cố định
-            //BigDecimal baseTotal = ci.getUnitPrice().multiply(BigDecimal.valueOf(ci.getQuantity()));
-            //oi.setLineTotal(baseTotal.add(toppingPerUnit)); 
-
+            // BigDecimal baseTotal =
+            // ci.getUnitPrice().multiply(BigDecimal.valueOf(ci.getQuantity()));
+            // oi.setLineTotal(baseTotal.add(toppingPerUnit));
 
             order.getItems().add(oi);
             subtotal = subtotal.add(oi.getLineTotal());
@@ -185,12 +187,12 @@ public class ICheckoutService implements CheckoutService {
 
         Order saved = orderRepo.save(order);
         if (code != null && !code.isBlank()) {
-            promotionService.markUsed(code);   // tăng lượt dùng mã
+            promotionService.markUsed(code); // tăng lượt dùng mã
         }
 
         saved.setOrderCode("BL"
-        + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE)
-        + String.format("%05d", saved.getId()));
+                + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE)
+                + String.format("%05d", saved.getId()));
         return orderService.getById(saved.getId());
     }
 
@@ -198,16 +200,17 @@ public class ICheckoutService implements CheckoutService {
     @Override
     public OrderResponse confirmOrder(Long orderId) {
         Order order = orderRepo.findById(orderId)
-            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn " + orderId));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn " + orderId));
 
         if (order.getStatus() == Order.Status.PAID) {
-            return orderService.getById(orderId);   // đã xác nhận rồi: không trừ kho/điểm lần nữa
+            return orderService.getById(orderId); // đã xác nhận rồi: không trừ kho/điểm lần nữa
         }
         if (order.getStatus() != Order.Status.PENDING
                 && order.getStatus() != Order.Status.PAYMENT_FAILED) {
             throw new IllegalStateException("Đơn không ở trạng thái có thể xác nhận thanh toán");
         }
 
+<<<<<<< HEAD
         /* 
         for (OrderItem oi : order.getItems()) {
             Product p = productRepo.findById(oi.getProduct().getId())
@@ -231,6 +234,27 @@ public class ICheckoutService implements CheckoutService {
             log.setCreatedAt(LocalDateTime.now());
             inventoryLogRepo.save(log);
         } cũ*/ 
+=======
+        /*
+         * for (OrderItem oi : order.getItems()) {
+         * // 1. Trừ tồn kho
+         * int updated = productRepo.deductStock(oi.getProduct().getId(),
+         * oi.getQuantity());
+         * if (updated == 0) {
+         * throw new IllegalStateException("Không đủ hàng: " + oi.getProductName());
+         * }
+         * 
+         * // 2. Ghi nhật ký vào inventory_log
+         * InventoryLog log = new InventoryLog();
+         * log.setChangeType("EXPORT");
+         * log.setQuantityChange(-oi.getQuantity()); // Số lượng âm thể hiện xuất bán
+         * log.setOrder(order);
+         * log.setProduct(oi.getProduct());
+         * log.setCreatedAt(LocalDateTime.now());
+         * inventoryLogRepo.save(log);
+         * } cũ
+         */
+>>>>>>> 662e1ed75368852e8d76e30c3cbe07a2528a6c4b
         // mới
         for (OrderItem oi : order.getItems()) {
             productInventoryService.deductStock(oi.getProduct().getId(), order, oi.getQuantity());
@@ -239,23 +263,24 @@ public class ICheckoutService implements CheckoutService {
                     toppingInventoryService.deductStock(ot.getTopping().getId(), order, ot.getQuantity());
                 }
             }
-        }//
+        } //
 
         loyaltyService.redeemPoints(orderId);
         OrderResponse res = orderService.updateStatus(orderId, Order.Status.PAID, null);
+        loyaltyService.earnPoints(orderId); // Tích điểm cho khách khi mua hàng thành công
         closeCart(res.getCustomerId());
         return res;
     }
 
-
     // ===================== Hàm phụ =====================
     // Giỏ đang dùng của khách (status = true), không có thì trả null
-     
+
     private Cart findActiveCart(Long customerId) {
         Customer customer = customerRepo.findById(customerId)
                 .or(() -> customerRepo.findByUserId(customerId))
                 .orElse(null);
-        if (customer == null) return null;
+        if (customer == null)
+            return null;
 
         Cart cart = cartRepo.findByCustomerId(customer.getId()).orElse(null);
         if (cart != null && Boolean.FALSE.equals(cart.getStatus())) {
@@ -267,8 +292,9 @@ public class ICheckoutService implements CheckoutService {
 
     // Số topping cần kiểm tra/trừ kho cho một dòng giỏ hàng.
     // Đang theo cách tính tiền hiện tại: quantity là TỔNG cho cả dòng.
-    // Nếu nhóm chốt quantity là "mỗi ly" thì đổi thành: ct.getQuantity() * ci.getQuantity()
-    //mới
+    // Nếu nhóm chốt quantity là "mỗi ly" thì đổi thành: ct.getQuantity() *
+    // ci.getQuantity()
+    // mới
     private int toppingAmount(CartItem ci, CartItemTopping ct) {
         return ct.getQuantity();
     }//

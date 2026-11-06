@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { orderApi, paymentApi, cartApi } from '../api';
+import { orderApi, paymentApi, cartApi, axiosClient } from '../api';
 import { OrderType } from '../models/order.model';
 import { formatService } from '../services/formatService';
 import InteractiveButton from '../components/common/InteractiveButton';
+import { IconArrowLeft } from '../components/common/Icons';
+import ChiikawaMascot from '../components/common/ChiikawaMascot';
 
 export const CheckoutPage = ({ onNavigate }) => {
   const { user } = useAuth();
@@ -13,6 +15,17 @@ export const CheckoutPage = ({ onNavigate }) => {
   const [orderType, setOrderType] = useState(OrderType.DINE_IN);
   const [tableNumber, setTableNumber] = useState('');
   const [voucherCode, setVoucherCode] = useState('');
+  const [voucherDetail, setVoucherDetail] = useState(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [voucherSuccess, setVoucherSuccess] = useState('');
+  const [voucherError, setVoucherError] = useState('');
+  const [validatingVoucher, setValidatingVoucher] = useState(false);
+
+  // Điểm thưởng tích lũy (Loyalty Points)
+  const [availableLoyaltyPoints, setAvailableLoyaltyPoints] = useState(0);
+  const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
+  const [pointsToUse, setPointsToUse] = useState(0);
+
   const [paymentMethod, setPaymentMethod] = useState('VNPay'); // 'VNPay', 'Momo', 'Stripe' (chuẩn 100% backend Payment.Method)
   const [note, setNote] = useState('');
 
@@ -53,6 +66,110 @@ export const CheckoutPage = ({ onNavigate }) => {
     }
   };
 
+  // Tải thông tin điểm thưởng tích lũy của khách hàng
+  useEffect(() => {
+    const customerId = user?.id || 1;
+    axiosClient
+      .get(`/api/v1/customers/profile?userId=${customerId}`)
+      .then((res) => {
+        const pts = res?.loyaltyPoints ?? res?.loyaltyPoint ?? 0;
+        setAvailableLoyaltyPoints(pts);
+      })
+      .catch(() => {
+        setAvailableLoyaltyPoints(0);
+      });
+  }, [user]);
+
+  // Xác thực và tính tiền giảm giá ngay lập tức khi gõ mã
+  const validateVoucherCode = async (codeToTest) => {
+    const code = (codeToTest ?? voucherCode).trim().toUpperCase();
+    if (!code) {
+      setDiscountAmount(0);
+      setVoucherDetail(null);
+      setVoucherSuccess('');
+      setVoucherError('');
+      return;
+    }
+    setValidatingVoucher(true);
+    try {
+      const res = await axiosClient.get('/api/promotions/validate', {
+        params: { code, amount: subtotal },
+      });
+      const discount = Number(res?.discountAmount ?? res) || 0;
+      let type = res?.discountType;
+      let val = Number(res?.discountValue);
+
+      // Nếu backend trả về số tiền thuần túy (chưa nạp DTO mới do chưa restart):
+      if (!val) {
+        try {
+          const promoRes = await axiosClient.get('/api/promotions');
+          const promoList = Array.isArray(promoRes) ? promoRes : promoRes?.data || promoRes?.value || [];
+          const matched = promoList.find((p) => (p.code || '').toUpperCase() === code);
+          if (matched) {
+            type = matched.discountType;
+            val = Number(matched.discountValue);
+          }
+        } catch {}
+      }
+
+      // Tự động suy luận % nếu có discount và subtotal
+      if (!val && subtotal > 0 && discount > 0) {
+        const ratio = Math.round((discount / subtotal) * 100);
+        if (ratio > 0 && ratio <= 100) {
+          type = 'PERCENT';
+          val = ratio;
+        }
+      }
+
+      const finalType = type || 'PERCENT';
+      const finalVal = val || 20;
+
+      setDiscountAmount(discount);
+      setVoucherDetail({ code, discountType: finalType, discountValue: finalVal });
+
+      const descType =
+        finalType === 'PERCENT'
+          ? `Giảm ${finalVal}%`
+          : `Giảm ${formatService.formatMoney(finalVal)}`;
+
+      setVoucherSuccess(`Đã áp dụng mã ${code} (${descType}): -${formatService.formatMoney(discount)}`);
+      setVoucherError('');
+    } catch (err) {
+      setDiscountAmount(0);
+      setVoucherDetail(null);
+      setVoucherSuccess('');
+      const msg = err.response?.data?.message || err.message || 'Mã ưu đãi không hợp lệ hoặc chưa đủ điều kiện';
+      setVoucherError(msg);
+    } finally {
+      setValidatingVoucher(false);
+    }
+  };
+
+  // Tự động kiểm tra và trừ tiền ngay khi người dùng gõ mã voucher
+  useEffect(() => {
+    if (!voucherCode.trim()) {
+      setDiscountAmount(0);
+      setVoucherDetail(null);
+      setVoucherSuccess('');
+      setVoucherError('');
+      return;
+    }
+    const timer = setTimeout(() => {
+      validateVoucherCode(voucherCode);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [voucherCode, subtotal]);
+
+  // Tính toán số tiền sau khi áp dụng Voucher và Điểm thưởng (1 điểm = 1.000đ)
+  const subtotalAfterVoucher = Math.max(0, subtotal - discountAmount);
+  const maxPointsAllowed = Math.min(
+    availableLoyaltyPoints,
+    Math.floor(subtotalAfterVoucher / 1000)
+  );
+  const actualPointsUsed = useLoyaltyPoints ? Math.min(pointsToUse, maxPointsAllowed) : 0;
+  const pointsDiscount = actualPointsUsed * 1000;
+  const finalTotal = Math.max(0, subtotalAfterVoucher - pointsDiscount);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -79,8 +196,8 @@ export const CheckoutPage = ({ onNavigate }) => {
         customerId,
         orderType,
         tableNumber: orderType === OrderType.DINE_IN ? tableNumber.trim() : '',
-        voucherCode: voucherCode.trim() || undefined,
-        loyaltyPointsUsed: 0,
+        voucherCode: voucherCode.trim().toUpperCase() || undefined,
+        loyaltyPointsUsed: actualPointsUsed,
         note: note.trim(),
         paymentMethod, // 'VNPay', 'Momo', hoặc 'Stripe'
       };
@@ -145,7 +262,7 @@ export const CheckoutPage = ({ onNavigate }) => {
         },
       });
 
-      const simulatedResult = res?.simulatedResult || res?.data?.simulatedResult || 'SUCCESS';
+      const simulatedResult = res?.simulatedResult || res?.status || 'SUCCESS';
 
       if (simulatedResult === 'SUCCESS') {
         setPaymentSuccess(true);
@@ -186,7 +303,7 @@ export const CheckoutPage = ({ onNavigate }) => {
     )}`;
 
     return (
-      <div className="container" style={{ padding: '48px 24px', maxWidth: '680px', margin: '0 auto' }}>
+      <div className="container" style={{ padding: '48px 24px 120px', maxWidth: '680px', margin: '0 auto' }}>
         <div
           style={{
             background: 'var(--color-surface)',
@@ -359,8 +476,17 @@ export const CheckoutPage = ({ onNavigate }) => {
             <button className="btn btn-primary" onClick={() => onNavigate('orders')}>
               Theo dõi đơn hàng của tôi
             </button>
-            <button className="btn btn-secondary" onClick={() => onNavigate('menu')}>
-              Tiếp tục chọn món
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setCreatedOrder(null);
+                setPaymentData(null);
+                onNavigate('menu');
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <IconArrowLeft size={16} />
+              <span>Quay lại chọn thêm món</span>
             </button>
           </div>
         </div>
@@ -372,10 +498,45 @@ export const CheckoutPage = ({ onNavigate }) => {
   // MÀN HÌNH ĐẶT HÀNG (CHECKOUT FORM)
   // ==========================================
   return (
-    <div className="container" style={{ padding: '36px 24px 60px' }}>
-      <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '24px' }}>
+    <div className="container" style={{ padding: '28px 24px 60px' }}>
+      <button
+        type="button"
+        onClick={() => {
+          if (onNavigate) onNavigate('cart');
+          else window.history.back();
+        }}
+        className="btn btn-secondary btn-sm"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 14px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          fontWeight: 600,
+          fontSize: '0.88rem',
+          cursor: 'pointer',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+        <IconArrowLeft size={18} />
+        <span>Quay lại chỉnh sửa món</span>
+      </button>
+
+      <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '20px' }}>
         Xác nhận và đặt hàng
       </h1>
+
+      {/* Bé mascot Chiikawa mách nước voucher giảm giá */}
+      <ChiikawaMascot
+        character="usagi"
+        message="Bạn có thể sử dụng KHAITRUONG để được giảm 20% cho tổng đơn hàng"
+        actionText="Áp dụng ngay"
+        onActionClick={() => {
+          setVoucherCode('KHAITRUONG');
+          validateVoucherCode('KHAITRUONG');
+        }}
+      />
 
       {errorMsg && (
         <div
@@ -503,13 +664,35 @@ export const CheckoutPage = ({ onNavigate }) => {
 
           <div className="form-group">
             <label className="form-label">Mã ưu đãi / Voucher (Nếu có)</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="VD: GIAM20K, CHAOMUNG"
-              value={voucherCode}
-              onChange={(e) => setVoucherCode(e.target.value)}
-            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="VD: KHAITRUONG, GIAM20K"
+                value={voucherCode}
+                onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                style={{ flex: 1, textTransform: 'uppercase' }}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => validateVoucherCode(voucherCode)}
+                disabled={validatingVoucher || !voucherCode.trim()}
+                style={{ padding: '8px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}
+              >
+                {validatingVoucher ? 'Đang kiểm tra...' : 'Áp dụng'}
+              </button>
+            </div>
+            {voucherSuccess && (
+              <div style={{ color: '#16a34a', fontSize: '0.84rem', marginTop: '6px', fontWeight: 600 }}>
+                ✓ {voucherSuccess}
+              </div>
+            )}
+            {voucherError && (
+              <div style={{ color: '#dc2626', fontSize: '0.84rem', marginTop: '6px' }}>
+                ✕ {voucherError}
+              </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -521,6 +704,64 @@ export const CheckoutPage = ({ onNavigate }) => {
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
+          </div>
+
+          {/* 4. ĐIỂM THƯỞNG TÍCH LŨY (LOYALTY POINTS) */}
+          <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e293b' }}>
+                  Điểm thưởng tích lũy (Loyalty Points)
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px' }}>
+                  Bạn hiện có: <strong style={{ color: '#2563eb', fontSize: '0.9rem' }}>{availableLoyaltyPoints}</strong> điểm (Tỷ lệ quy đổi: 1 điểm = 1.000 đ)
+                </div>
+              </div>
+              {availableLoyaltyPoints > 0 && maxPointsAllowed > 0 && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={useLoyaltyPoints}
+                    onChange={(e) => {
+                      setUseLoyaltyPoints(e.target.checked);
+                      if (e.target.checked && pointsToUse <= 0) {
+                        setPointsToUse(maxPointsAllowed);
+                      }
+                    }}
+                    style={{ width: '16px', height: '16px', accentColor: '#2563eb', cursor: 'pointer' }}
+                  />
+                  <span>Dùng điểm giảm giá</span>
+                </label>
+              )}
+            </div>
+
+            {useLoyaltyPoints && availableLoyaltyPoints > 0 && (
+              <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '0.85rem', color: '#475569' }}>Số điểm dùng:</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={maxPointsAllowed}
+                    value={pointsToUse}
+                    onChange={(e) => setPointsToUse(Math.max(0, Math.min(maxPointsAllowed, parseInt(e.target.value) || 0)))}
+                    className="form-input"
+                    style={{ width: '100px', padding: '6px 10px', fontSize: '0.9rem' }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setPointsToUse(maxPointsAllowed)}
+                  style={{ padding: '6px 12px', fontSize: '0.82rem' }}
+                >
+                  Dùng tối đa ({maxPointsAllowed} điểm)
+                </button>
+                <div style={{ fontSize: '0.88rem', color: '#16a34a', fontWeight: 700 }}>
+                  Giảm -{formatService.formatMoney(actualPointsUsed * 1000)}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -568,9 +809,33 @@ export const CheckoutPage = ({ onNavigate }) => {
               <span style={{ fontWeight: 700 }}>{formatService.formatMoney(subtotal)}</span>
             </div>
 
+            {discountAmount > 0 && (
+              <div className="summary-row" style={{ color: '#16a34a' }}>
+                <span>
+                  Giảm giá ({voucherCode.trim().toUpperCase()}
+                  {voucherDetail?.discountType === 'PERCENT'
+                    ? ` - Giảm ${Number(voucherDetail.discountValue)}%`
+                    : voucherDetail?.discountType === 'FIXED'
+                    ? ` - Giảm ${formatService.formatMoney(voucherDetail.discountValue)}`
+                    : ''}
+                  )
+                </span>
+                <span style={{ fontWeight: 700 }}>-{formatService.formatMoney(discountAmount)}</span>
+              </div>
+            )}
+
+            {pointsDiscount > 0 && (
+              <div className="summary-row" style={{ color: '#2563eb' }}>
+                <span>Điểm thưởng ({actualPointsUsed} điểm)</span>
+                <span style={{ fontWeight: 700 }}>-{formatService.formatMoney(pointsDiscount)}</span>
+              </div>
+            )}
+
             <div className="summary-row total">
               <span>Tổng thanh toán</span>
-              <span>{formatService.formatMoney(subtotal)}</span>
+              <span style={{ color: 'var(--color-accent)' }}>
+                {formatService.formatMoney(finalTotal)}
+              </span>
             </div>
 
             <InteractiveButton

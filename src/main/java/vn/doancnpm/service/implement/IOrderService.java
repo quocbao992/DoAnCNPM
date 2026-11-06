@@ -103,33 +103,18 @@ public class IOrderService implements OrderService {
         return mapToOrderResponse(saved);
     }
 
-    // ===================== Hủy đơn (PENDING / PAYMENT_FAILED / PAID) =====================
+    // ===================== Hủy đơn (Chỉ đơn chưa thanh toán PENDING / PAYMENT_FAILED) =====================
     @Override
     public OrderResponse cancel(Long orderId, String reason) {
         Order order = findOrder(orderId);
         Order.Status st = order.getStatus();
-        if (st != Order.Status.PENDING && st != Order.Status.PAYMENT_FAILED
-                && st != Order.Status.PAID) {
-            throw new IllegalStateException("Chỉ hủy được đơn PENDING hoặc PAID");
-        }
-        // Đơn PAID đã bị trừ kho ở confirmOrder -> phải hoàn kho
-        if (st == Order.Status.PAID) {
-            for (OrderItem oi : order.getItems()) {
-                productInventoryService.addStock(
-                        oi.getProduct().getId(), order, oi.getQuantity(), "ORDER_CANCEL");
-                if (oi.getToppings() != null) {
-                    for (OrderItemTopping ot : oi.getToppings()) {
-                        toppingInventoryService.addStock(
-                                ot.getTopping().getId(), order, ot.getQuantity(), "ORDER_CANCEL");
-                    }
-                }
-            }
-            
+        if (st != Order.Status.PENDING && st != Order.Status.PAYMENT_FAILED) {
+            throw new IllegalStateException("Đơn hàng đã thanh toán không thể hủy");
         }
         order.setStatus(Order.Status.CANCELLED);
         order.setCancelReason(reason);
         Order saved = orderRepo.save(order);
-        loyaltyService.revertPoints(orderId);   // trả lại điểm khách đã dùng
+        loyaltyService.revertPoints(orderId);   // trả lại điểm khách đã dùng nếu có
         return mapToOrderResponse(saved);
     }
 
@@ -183,10 +168,16 @@ public class IOrderService implements OrderService {
 
     private OrderSummaryResponse mapToSummary(Order o) {
         int totalItems = o.getItems().stream().mapToInt(OrderItem::getQuantity).sum();
+        List<OrderItemResponse> itemResponses = (o.getItems() == null)
+                ? Collections.emptyList()
+                : o.getItems().stream().map(this::mapToItemResponse).toList();
         return OrderSummaryResponse.builder()
                 .id(o.getId())
                 .orderCode(o.getOrderCode())
                 .status(o.getStatus())
+                .orderType(o.getOrderType())
+                .tableNumber(o.getTableNumber())
+                .items(itemResponses)
                 .totalAmount(o.getTotalAmount())
                 .totalItems(totalItems)
                 .createdAt(o.getCreatedAt())

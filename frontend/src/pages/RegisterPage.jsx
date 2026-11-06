@@ -138,8 +138,15 @@ export const RegisterPage = ({ onNavigate }) => {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!formData.fullName.trim()) {
+    const nameVal = formData.fullName.trim();
+    if (!nameVal) {
       setErrorMsg('Vui lòng nhập họ và tên.');
+      return;
+    }
+    // Kiểm tra họ tên: chỉ chấp nhận chữ cái tiếng Việt/quốc tế và dấu cách, cấm chữ số và ký tự đặc biệt
+    const nameRegex = /^[\p{L}\s]+$/u;
+    if (!nameRegex.test(nameVal) || nameVal.length < 2) {
+      setErrorMsg('Họ và tên không hợp lệ. Chỉ được chứa chữ cái, không được chứa số (ví dụ: 888) hoặc ký tự đặc biệt.');
       return;
     }
     if (!formData.email.trim() || !formData.email.includes('@')) {
@@ -352,14 +359,13 @@ export const RegisterPage = ({ onNavigate }) => {
 
             {/* Bước 1: Thông tin cá nhân */}
             {step === 1 && (
-              <form onSubmit={handleNextStep}>
+              <form noValidate onSubmit={handleNextStep}>
                 <div className="form-group">
                   <label className="form-label">Họ và tên *</label>
                   <input
                     type="text"
                     name="fullName"
                     className="form-input"
-                    required
                     placeholder="VD: Nguyễn Văn A"
                     value={formData.fullName}
                     onChange={handleChange}
@@ -372,7 +378,6 @@ export const RegisterPage = ({ onNavigate }) => {
                     type="email"
                     name="email"
                     className="form-input"
-                    required
                     placeholder="name@example.com"
                     value={formData.email}
                     onChange={handleChange}
@@ -385,7 +390,6 @@ export const RegisterPage = ({ onNavigate }) => {
                     type="tel"
                     name="phone"
                     className="form-input"
-                    required
                     placeholder="VD: 0912345678"
                     value={formData.phone}
                     onChange={handleChange}
@@ -395,7 +399,7 @@ export const RegisterPage = ({ onNavigate }) => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '14px', alignItems: 'start' }}>
                   <div className="form-group">
                     <label className="form-label">Ngày sinh *</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.35fr', gap: '6px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr 1.25fr', gap: '6px' }}>
                       <input
                         ref={dayInputRef}
                         type="text"
@@ -408,22 +412,25 @@ export const RegisterPage = ({ onNavigate }) => {
                         onChange={handleDayChange}
                         onKeyDown={(e) => handleKeyDown('day', e)}
                         style={{ textAlign: 'center', padding: '10px 4px', fontSize: '0.92rem' }}
-                        required
                       />
                       <input
                         ref={monthInputRef}
                         type="text"
-                        inputMode="numeric"
-                        maxLength={2}
+                        list="dob-months-options"
                         className="form-input"
                         placeholder="Tháng"
-                        title="Tháng sinh (01 - 12)"
+                        title="Lướt chọn hoặc gõ tháng (01 - 12)"
                         value={formData.dobMonth}
                         onChange={handleMonthChange}
                         onKeyDown={(e) => handleKeyDown('month', e)}
                         style={{ textAlign: 'center', padding: '10px 4px', fontSize: '0.92rem' }}
-                        required
                       />
+                      <datalist id="dob-months-options">
+                        {Array.from({ length: 12 }, (_, i) => {
+                          const val = String(i + 1).padStart(2, '0');
+                          return <option key={val} value={val}>{`Tháng ${val}`}</option>;
+                        })}
+                      </datalist>
                       <input
                         ref={yearInputRef}
                         type="text"
@@ -436,7 +443,6 @@ export const RegisterPage = ({ onNavigate }) => {
                         onChange={handleYearChange}
                         onKeyDown={(e) => handleKeyDown('year', e)}
                         style={{ textAlign: 'center', padding: '10px 4px', fontSize: '0.92rem' }}
-                        required
                       />
                     </div>
                   </div>
@@ -468,14 +474,13 @@ export const RegisterPage = ({ onNavigate }) => {
 
             {/* Bước 2: Thông tin tài khoản */}
             {step === 2 && (
-              <form onSubmit={handleSubmit}>
+              <form noValidate onSubmit={handleSubmit}>
                 <div className="form-group">
                   <label className="form-label">Tên tài khoản (Username) *</label>
                   <input
                     type="text"
                     name="username"
                     className="form-input"
-                    required
                     placeholder="Tên đăng nhập (từ 3 ký tự)"
                     value={formData.username}
                     onChange={handleChange}
@@ -488,7 +493,6 @@ export const RegisterPage = ({ onNavigate }) => {
                     type="password"
                     name="password"
                     className="form-input"
-                    required
                     placeholder="Mật khẩu (tối thiểu 8 ký tự)"
                     value={formData.password}
                     onChange={handleChange}
@@ -501,7 +505,6 @@ export const RegisterPage = ({ onNavigate }) => {
                     type="password"
                     name="confirmPassword"
                     className="form-input"
-                    required
                     placeholder="Nhập lại mật khẩu"
                     value={formData.confirmPassword}
                     onChange={handleChange}

@@ -1,0 +1,51 @@
+name: Backend Pipeline
+
+on:
+  push:
+    branches: [ "main", "master", "TienDat" ]
+    paths:
+      - 'src/**'
+      - 'pom.xml'
+      - '.mvn/**'
+      - 'mvnw*'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'src/**'
+      - 'pom.xml'
+      - '.mvn/**'
+      - 'mvnw*'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  backend-ci:
+    name: Backend Test & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Cài đặt JDK 25
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cấp quyền thực thi cho Maven Wrapper
+        run: chmod +x mvnw
+
+      - name: Kiểm tra sự tồn tại của file kiểm thử (Unit Test)
+        run: |
+          TEST_COUNT=$(find src/test/java -type f \( -name "*Test*.java" -o -name "*Tests*.java" \) 2>/dev/null | wc -l)
+          echo "Số lượng file kiểm thử tìm thấy: $TEST_COUNT"
+          if [ "$TEST_COUNT" -eq 0 ]; then
+            echo "❌ [LỖI CI] Không tìm thấy bất kỳ file kiểm thử nào trong thư mục src/test/java!"
+            echo "Quy tắc bắt buộc: Phải có ít nhất 1 bài Unit Test trước khi đẩy code lên."
+            exit 1
+          fi
+
+      - name: Chạy kiểm thử tự động với Maven (Bắt lỗi nếu không có test)
+        run: ./mvnw clean test -DfailIfNoTests=true

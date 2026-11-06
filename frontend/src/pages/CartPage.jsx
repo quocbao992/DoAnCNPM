@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { formatService } from '../services/formatService';
 import { resolveProductImage, defaultCoffeeImg } from '../images';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import EditCartItemModal from '../components/common/EditCartItemModal';
 
 export const CartPage = ({ onNavigate }) => {
   const { isAuthenticated } = useAuth();
@@ -18,8 +19,7 @@ export const CartPage = ({ onNavigate }) => {
   } = useCart();
 
   const [loadingCart, setLoadingCart] = useState(true);
-  const [editingNoteId, setEditingNoteId] = useState(null);
-  const [tempNote, setTempNote] = useState('');
+  const [editingItem, setEditingItem] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -159,25 +159,6 @@ export const CartPage = ({ onNavigate }) => {
                             Topping: {item.toppings.map((t) => t.name).join(', ')}
                           </div>
                         )}
-                        {editingNoteId === item.id ? (
-                          <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                            <input
-                              type="text"
-                              className="form-input"
-                              style={{ padding: '4px 8px', fontSize: '0.8rem', width: '160px' }}
-                              value={tempNote}
-                              placeholder="Ghi chú món..."
-                              onChange={(e) => setTempNote(e.target.value)}
-                            />
-                            <button
-                              className="btn btn-primary btn-sm"
-                              style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                              onClick={() => handleSaveNote(item.id)}
-                            >
-                              Lưu
-                            </button>
-                          </div>
-                        ) : (
                           <div
                             style={{
                               fontSize: '0.82rem',
@@ -185,23 +166,28 @@ export const CartPage = ({ onNavigate }) => {
                               marginTop: '2px',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '6px',
+                              gap: '8px',
                             }}
                           >
                             <span>{item.note ? `Ghi chú: ${item.note}` : 'Chưa có ghi chú'}</span>
                             <button
-                              onClick={() => handleStartEditNote(item)}
+                              type="button"
+                              onClick={() => setEditingItem(item)}
                               style={{
                                 color: 'var(--color-accent)',
                                 textDecoration: 'underline',
-                                fontSize: '0.78rem',
+                                fontSize: '0.82rem',
                                 cursor: 'pointer',
+                                fontWeight: 600,
+                                background: 'transparent',
+                                border: 'none',
+                                padding: 0,
                               }}
+                              title="Chỉnh sửa size, topping, số lượng và ghi chú"
                             >
                               Sửa
                             </button>
                           </div>
-                        )}
                       </div>
                     </div>
                   </td>
@@ -310,6 +296,14 @@ export const CartPage = ({ onNavigate }) => {
           </div>
         </div>
       </div>
+
+      {/* MODAL POPUP CHỈNH SỬA MÓN (Size, Topping, Số lượng, Ghi chú) */}
+      <EditCartItemModal
+        item={editingItem}
+        isOpen={Boolean(editingItem)}
+        onClose={() => setEditingItem(null)}
+        onSave={updateItem}
+      />
     </div>
   );
 };
